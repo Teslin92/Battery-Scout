@@ -20,7 +20,7 @@ jobs:
           python-version: '3.9'
 
       - name: Install libraries
-        run: pip install requests
+        run: pip install requests google-auth google-api-python-client
 
       - name: Run script
         env:
