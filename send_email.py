@@ -136,8 +136,8 @@ def send_email():
                 msg = MIMEMultipart()
                 msg['From'] = email_sender
                 msg['To'] = user_email
-                msg['Subject'] = f"🔋 Battery Updates: {news_found_count} New Articles"
-                msg.attach(MIMEText(email_body_html, 'html'))
+                msg['Subject'] = f"🕵🏻‍♂️ Battery Scout: {news_found_count} Battery News for You"
+                msg.attach(MIMEText(email_body_html = "<h1>The Morning Battery Brief</h1><p>Here is what you missed in the last 24 hours:</p><hr>"))
                 
                 try:
                     smtp.sendmail(email_sender, user_email, msg.as_string())
