@@ -4,14 +4,41 @@ import pandas as pd
 import time
 import smtplib
 import os
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
 # --- CONFIGURATION ---
-YOUR_EMAIL = "ENTER_EMAIL_HERE"  # <--- FILL THIS IN
-YOUR_APP_PASSWORD = "ENTER_PASSWORD_HERE" # <--- FILL THIS IN
+YOUR_EMAIL = "zmeseldzija@gmail.com"  # <--- FILL THIS IN
+YOUR_APP_PASSWORD = "mqhh hguf ivxf vgtr" # <--- FILL THIS IN
 HISTORY_FILE = "history.txt"
+SHEET_NAME = "Battery Subscribers" # <--- MATCH YOUR GOOGLE SHEET NAME
+
+# --- GOOGLE SHEETS SETUP ---
+SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+
+def get_subscribers_from_sheet():
+    """Reads the Google Sheet and returns a DataFrame"""
+    try:
+        creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", SCOPE)
+        client = gspread.authorize(creds)
+        sheet = client.open(SHEET_NAME).sheet1
+        
+        # Get all values
+        data = sheet.get_all_values()
+        
+        # Convert to DataFrame (assuming Row 1 is headers: "Email", "Topics")
+        if not data:
+            return pd.DataFrame()
+            
+        headers = data.pop(0) 
+        df = pd.DataFrame(data, columns=headers)
+        return df
+    except Exception as e:
+        print(f"❌ Error connecting to Google Sheets: {e}")
+        return pd.DataFrame()
 
 # --- HELPER FUNCTIONS ---
 def load_history():
@@ -29,7 +56,7 @@ def send_email(to_email, subject, body):
     msg['From'] = YOUR_EMAIL
     msg['To'] = to_email
     msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'html')) # Changed to HTML for clickable links
+    msg.attach(MIMEText(body, 'html'))
 
     try:
         server = smtplib.SMTP('smtp.gmail.com', 587)
@@ -42,66 +69,63 @@ def send_email(to_email, subject, body):
         print(f"❌ Failed to send email: {e}")
 
 # --- MAIN LOGIC ---
-print("--- 🔋 STARTING BATTERY SCOUT (GOOGLE NEWS MODE) ---")
+print("--- 🔋 STARTING BATTERY SCOUT (CLOUD DATA MODE) ---")
 
 sent_papers = load_history()
 
-try:
-    df = pd.read_csv('subscribers.csv')
-except FileNotFoundError:
-    print("No subscribers found! Go to app.py and sign up.")
+# 1. READ FROM GOOGLE SHEETS INSTEAD OF CSV
+print("   Connecting to Google Sheets...")
+df = get_subscribers_from_sheet()
+
+if df.empty:
+    print("No subscribers found in the Sheet!")
     exit()
+else:
+    print(f"   Found {len(df)} subscribers.")
 
 for index, row in df.iterrows():
-    user_email = row['Email']
-    topics = row['Topics'].split("|")
+    user_email = row['0'] if '0' in row else row.iloc[0] # Handle messy headers
+    raw_topics = row['1'] if '1' in row else row.iloc[1]
+    
+    # Just in case the sheet headers are messy, we force column 0=Email, 1=Topics
+    # Or if you named headers in the sheet, use row['Email']
+    
+    # Safety check
+    if not user_email or "@" not in user_email:
+        continue
+        
+    topics = raw_topics.split("|")
     
     print(f"\n📨 Processing: {user_email}")
     
-    # We build an HTML email now so it looks better
     email_content = "<h2>🔋 Daily Battery Industry Updates</h2><hr>"
     new_items_count = 0
     
     for topic in topics:
-        # CLEANUP: Google News hates complex boolean like "OR". 
-        # We simplify the search to the main keyword.
-        # Example: '("silicon anode" OR "Si-anode")' -> 'silicon anode battery'
+        if not topic: continue
         
-        # We strip the complex syntax to just get a solid search phrase
+        # CLEANUP: '("silicon anode" OR "Si-anode")' -> 'silicon anode battery'
         simple_topic = topic.replace('(', '').replace(')', '').split(' OR ')[0].replace('"', '')
-        
-        # Add "battery" to ensure context if it's missing
         if "battery" not in simple_topic.lower() and "storage" not in simple_topic.lower():
             search_term = f"{simple_topic} battery"
         else:
             search_term = simple_topic
             
         print(f"   🔎 Scouting Google News for: '{search_term}'...")
-        
-        # ENCODE URL
         safe_query = urllib.parse.quote(search_term)
-        
-        # GOOGLE NEWS RSS URL
-        # This targets "Science" and "Technology" sections specifically
         url = f"https://news.google.com/rss/search?q={safe_query}+when:7d&hl=en-CA&gl=CA&ceid=CA:en"
         
         feed = feedparser.parse(url)
-        
-        # Get top 5 results PER TOPIC (You can change this number)
         topic_count = 0
         topic_header_added = False
         
         for entry in feed.entries:
-            if topic_count >= 5: break # Limit to 5 articles per topic
-            
-            # Create a unique ID from the link so we don't repeat news
+            if topic_count >= 5: break 
             news_id = entry.link
             
             if news_id in sent_papers:
                 continue
 
-            # FILTER: Basic keyword check to ensure relevance
-            # If we search for "Silicon", we want to make sure it's not "Silicon Valley Bank"
             if simple_topic.lower() not in entry.title.lower() and simple_topic.lower() not in entry.summary.lower():
                 continue
 

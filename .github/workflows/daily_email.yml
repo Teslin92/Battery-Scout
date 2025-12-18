@@ -1,0 +1,30 @@
+name: Daily Email Sender
+
+on:
+  schedule:
+    # Runs at 14:00 UTC (approx 6am/9am US time)
+    - cron: '0 14 * * *'
+  workflow_dispatch:
+
+jobs:
+  send-email:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install libraries
+        run: pip install requests
+
+      - name: Run script
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+        run: python send_email.py
