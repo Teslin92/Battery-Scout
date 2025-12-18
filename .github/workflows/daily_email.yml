@@ -2,7 +2,6 @@ name: Daily Email Sender
 
 on:
   schedule:
-    # Runs at 14:00 UTC (approx 6am/9am US time)
     - cron: '0 14 * * *'
   workflow_dispatch:
 
