@@ -14,7 +14,7 @@ service_account_info = json.loads(os.environ.get("GCP_SERVICE_ACCOUNT"))
 
 # SPREADSHEET SETUP
 # Replace this with your actual Google Sheet ID (found in the URL of your sheet)
-SPREADSHEET_ID = 'YOUR_GOOGLE_SHEET_ID_HERE' 
+SPREADSHEET_ID = '1jaE61a613sqmxQnT_UncrbHzAsqYPqDwdIZGqoJ5Lc8' 
 RANGE_NAME = 'Sheet1!A:B' # Adjust if your sheet name is different
 
 def get_subscribers_from_sheet():
