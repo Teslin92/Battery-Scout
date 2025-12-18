@@ -1,154 +1,151 @@
+import os
+import smtplib
+import ssl
+import json
 import feedparser
 import urllib.parse
-import pandas as pd
-import time
-import smtplib
-import os
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from datetime import datetime, timedelta
+from email.message import EmailMessage
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from datetime import datetime
+from google.oauth2 import service_account
+from googleapiclient.discovery import build
+from dateutil import parser as date_parser
 
 # --- CONFIGURATION ---
-YOUR_EMAIL = "zmeseldzija@gmail.com"  # <--- FILL THIS IN
-YOUR_APP_PASSWORD = "mqhh hguf ivxf vgtr" # <--- FILL THIS IN
-HISTORY_FILE = "history.txt"
-SHEET_NAME = "Battery Subscribers" # <--- MATCH YOUR GOOGLE SHEET NAME
+# Secrets from GitHub
+api_key = os.environ.get("GOOGLE_API_KEY")
+email_sender = os.environ.get("EMAIL_ADDRESS")
+email_password = os.environ.get("EMAIL_PASSWORD")
+service_account_info = json.loads(os.environ.get("GCP_SERVICE_ACCOUNT"))
 
-# --- GOOGLE SHEETS SETUP ---
-SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+# Google Sheet Settings
+SPREADSHEET_ID = 'YOUR_GOOGLE_SHEET_ID_HERE'  # <--- PASTE YOUR ID HERE AGAIN
+RANGE_NAME = 'Sheet1!A:C' # Reading Columns A (Email) and B (Topics)
 
 def get_subscribers_from_sheet():
-    """Reads the Google Sheet and returns a DataFrame"""
+    """Connects to Google Sheets and grabs the list"""
+    creds = service_account.Credentials.from_service_account_info(
+        service_account_info, scopes=['https://www.googleapis.com/auth/spreadsheets.readonly'])
+    
+    service = build('sheets', 'v4', credentials=creds)
+    sheet = service.spreadsheets()
+    result = sheet.values().get(spreadsheetId=SPREADSHEET_ID, range=RANGE_NAME).execute()
+    return result.get('values', [])
+
+def is_article_new(published_date_str):
+    """Checks if the article was published in the last 24-48 hours"""
     try:
-        creds = ServiceAccountCredentials.from_json_keyfile_name("credentials.json", SCOPE)
-        client = gspread.authorize(creds)
-        sheet = client.open(SHEET_NAME).sheet1
+        # Parse the date string from the RSS feed
+        pub_date = date_parser.parse(published_date_str)
+        # Remove timezone info for comparison (make it "naive")
+        pub_date = pub_date.replace(tzinfo=None)
         
-        # Get all values
-        data = sheet.get_all_values()
-        
-        # Convert to DataFrame (assuming Row 1 is headers: "Email", "Topics")
-        if not data:
-            return pd.DataFrame()
-            
-        headers = data.pop(0) 
-        df = pd.DataFrame(data, columns=headers)
-        return df
-    except Exception as e:
-        print(f"❌ Error connecting to Google Sheets: {e}")
-        return pd.DataFrame()
+        # Check if it is from the last 24 hours
+        now = datetime.utcnow()
+        if (now - pub_date) < timedelta(hours=24):
+            return True
+        return False
+    except:
+        # If we can't read the date, assume it's old to be safe
+        return False
 
-# --- HELPER FUNCTIONS ---
-def load_history():
-    if not os.path.exists(HISTORY_FILE):
-        return set()
-    with open(HISTORY_FILE, "r") as f:
-        return set(line.strip() for line in f)
+def send_email():
+    if not email_sender or not email_password:
+        print("Error: Secrets not found.")
+        return
 
-def save_to_history(entry_id):
-    with open(HISTORY_FILE, "a") as f:
-        f.write(f"{entry_id}\n")
-
-def send_email(to_email, subject, body):
-    msg = MIMEMultipart()
-    msg['From'] = YOUR_EMAIL
-    msg['To'] = to_email
-    msg['Subject'] = subject
-    msg.attach(MIMEText(body, 'html'))
-
+    print("🔌 Connecting to Google Sheets...")
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(YOUR_EMAIL, YOUR_APP_PASSWORD)
-        server.sendmail(YOUR_EMAIL, to_email, msg.as_string())
-        server.quit()
-        print(f"✅ Email sent to {to_email}")
+        rows = get_subscribers_from_sheet()
     except Exception as e:
-        print(f"❌ Failed to send email: {e}")
+        print(f"Failed to read Sheet: {e}")
+        return
 
-# --- MAIN LOGIC ---
-print("--- 🔋 STARTING BATTERY SCOUT (CLOUD DATA MODE) ---")
-
-sent_papers = load_history()
-
-# 1. READ FROM GOOGLE SHEETS INSTEAD OF CSV
-print("   Connecting to Google Sheets...")
-df = get_subscribers_from_sheet()
-
-if df.empty:
-    print("No subscribers found in the Sheet!")
-    exit()
-else:
-    print(f"   Found {len(df)} subscribers.")
-
-for index, row in df.iterrows():
-    user_email = row['0'] if '0' in row else row.iloc[0] # Handle messy headers
-    raw_topics = row['1'] if '1' in row else row.iloc[1]
-    
-    # Just in case the sheet headers are messy, we force column 0=Email, 1=Topics
-    # Or if you named headers in the sheet, use row['Email']
-    
-    # Safety check
-    if not user_email or "@" not in user_email:
-        continue
+    # Skip Header Row
+    if not rows:
+        print("Sheet is empty.")
+        return
         
-    topics = raw_topics.split("|")
+    subscribers = rows[1:]
+    print(f"📋 Found {len(subscribers)} subscribers.")
+
+    # Email Connection
+    context = ssl.create_default_context()
     
-    print(f"\n📨 Processing: {user_email}")
-    
-    email_content = "<h2>🔋 Daily Battery Industry Updates</h2><hr>"
-    new_items_count = 0
-    
-    for topic in topics:
-        if not topic: continue
-        
-        # CLEANUP: '("silicon anode" OR "Si-anode")' -> 'silicon anode battery'
-        simple_topic = topic.replace('(', '').replace(')', '').split(' OR ')[0].replace('"', '')
-        if "battery" not in simple_topic.lower() and "storage" not in simple_topic.lower():
-            search_term = f"{simple_topic} battery"
-        else:
-            search_term = simple_topic
+    with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+        smtp.login(email_sender, email_password)
+
+        for row in subscribers:
+            # Safety check for empty rows
+            if len(row) < 2: continue
             
-        print(f"   🔎 Scouting Google News for: '{search_term}'...")
-        safe_query = urllib.parse.quote(search_term)
-        url = f"https://news.google.com/rss/search?q={safe_query}+when:7d&hl=en-CA&gl=CA&ceid=CA:en"
-        
-        feed = feedparser.parse(url)
-        topic_count = 0
-        topic_header_added = False
-        
-        for entry in feed.entries:
-            if topic_count >= 5: break 
-            news_id = entry.link
+            user_email = row[0]
+            raw_topics = row[1] # "Lithium|Cobalt"
             
-            if news_id in sent_papers:
-                continue
+            if not user_email or "@" not in user_email: continue
 
-            if simple_topic.lower() not in entry.title.lower() and simple_topic.lower() not in entry.summary.lower():
-                continue
+            print(f"🔎 Scouting news for: {user_email}")
 
-            if not topic_header_added:
-                email_content += f"<h3 style='color: #2E86C1;'>Topic: {simple_topic.title()}</h3>"
-                topic_header_added = True
-
-            print(f"      📰 FOUND: {entry.title[:40]}...")
+            # Prepare the Email Body
+            email_body_html = "<h2>🔋 Daily Battery Updates</h2><hr>"
+            news_found_count = 0
             
-            email_content += f"<p><strong><a href='{entry.link}'>{entry.title}</a></strong><br>"
-            email_content += f"<span style='font-size: 12px; color: #666;'>{entry.published}</span></p>"
-            
-            save_to_history(news_id)
-            sent_papers.add(news_id)
-            new_items_count += 1
-            topic_count += 1
-        
-        time.sleep(1)
+            # Split topics by the pipe symbol |
+            topic_list = raw_topics.split("|")
 
-    if new_items_count > 0:
-        print(f"   Found {new_items_count} updates. Sending email...")
-        send_email(user_email, f"🔋 Battery Updates: {new_items_count} New Articles", email_content)
-    else:
-        print(f"   No new updates today.")
+            for topic in topic_list:
+                if not topic: continue
 
-print("\n--- JOB COMPLETE ---")
+                # CLEANUP LOGIC (From your original script)
+                simple_topic = topic.replace('(', '').replace(')', '').split(' OR ')[0].replace('"', '')
+                if "battery" not in simple_topic.lower() and "storage" not in simple_topic.lower():
+                    search_term = f"{simple_topic} battery"
+                else:
+                    search_term = simple_topic
+
+                # GOOGLE NEWS SEARCH
+                safe_query = urllib.parse.quote(search_term)
+                rss_url = f"https://news.google.com/rss/search?q={safe_query}+when:1d&hl=en-CA&gl=CA&ceid=CA:en"
+                
+                feed = feedparser.parse(rss_url)
+                
+                topic_header_added = False
+                topic_article_count = 0
+
+                for entry in feed.entries:
+                    if topic_article_count >= 5: break # Max 5 articles per topic
+
+                    # DATE CHECK (The Fix for "History.txt")
+                    if not is_article_new(entry.published):
+                        continue
+
+                    if not topic_header_added:
+                        email_body_html += f"<h3 style='color: #2E86C1;'>Topic: {simple_topic.title()}</h3>"
+                        topic_header_added = True
+                    
+                    # Add Article to Email
+                    email_body_html += f"<p><strong><a href='{entry.link}'>{entry.title}</a></strong><br>"
+                    email_body_html += f"<span style='font-size: 12px; color: #666;'>{entry.published}</span></p>"
+                    
+                    news_found_count += 1
+                    topic_article_count += 1
+
+            # SEND THE EMAIL (Only if news was found)
+            if news_found_count > 0:
+                msg = MIMEMultipart()
+                msg['From'] = email_sender
+                msg['To'] = user_email
+                msg['Subject'] = f"🔋 Battery Updates: {news_found_count} New Articles"
+                msg.attach(MIMEText(email_body_html, 'html'))
+                
+                try:
+                    smtp.sendmail(email_sender, user_email, msg.as_string())
+                    print(f"✅ Sent email to {user_email} with {news_found_count} articles.")
+                except Exception as e:
+                    print(f"❌ Failed to send to {user_email}: {e}")
+            else:
+                print(f"💤 No new news for {user_email} today.")
+
+if __name__ == "__main__":
+    send_email()
