@@ -67,7 +67,7 @@ def send_email():
             # --- CUSTOMIZED MESSAGE START ---
             # We build the message in a variable first
             email_body_html = """
-            <h1 style='color: #2E86C1;'>🔋 The Battery Scout Brief</h1>
+            <h1 style='color: #2E86C1;'>🕵🏻‍♂️ The Battery Scout Brief</h1>
             <p>Here are the latest updates for your tracked topics from the last 24 hours:</p>
             <hr>
             """
@@ -93,7 +93,7 @@ def send_email():
                     if not is_article_new(entry.published): continue
 
                     if not topic_header_added:
-                        email_body_html += f"<h3>📍 {simple_topic.title()}</h3>"
+                        email_body_html += f"<h3>🔋 {simple_topic.title()}</h3>"
                         topic_header_added = True
                     
                     email_body_html += f"<p>• <a href='{entry.link}'>{entry.title}</a> <span style='color: #888; font-size: 0.8em;'>({entry.published[:16]})</span></p>"
