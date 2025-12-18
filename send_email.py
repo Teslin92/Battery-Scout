@@ -20,7 +20,7 @@ email_password = os.environ.get("EMAIL_PASSWORD")
 service_account_info = json.loads(os.environ.get("GCP_SERVICE_ACCOUNT"))
 
 # Google Sheet Settings
-SPREADSHEET_ID = 'YOUR_GOOGLE_SHEET_ID_HERE'  # <--- PASTE YOUR ID HERE AGAIN
+SPREADSHEET_ID = '1jaE61a613sqmxQnT_UncrbHzAsqYPqDwdIZGqoJ5Lc8'  # <--- PASTE YOUR ID HERE AGAIN
 RANGE_NAME = 'Sheet1!A:C' # Reading Columns A (Email) and B (Topics)
 
 def get_subscribers_from_sheet():
