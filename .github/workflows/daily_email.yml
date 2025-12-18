@@ -22,9 +22,11 @@ jobs:
       - name: Install libraries
         run: pip install requests google-auth google-api-python-client
 
-      - name: Run script
+ - name: Run script
         env:
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
+          # ADD THIS LINE BELOW:
+          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
         run: python send_email.py
