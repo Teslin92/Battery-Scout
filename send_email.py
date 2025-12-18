@@ -9,7 +9,7 @@ email_sender = os.environ.get("EMAIL_ADDRESS")
 email_password = os.environ.get("EMAIL_PASSWORD")
 
 # REPLACE THIS with your actual email to test it
-email_receiver = "PUT_YOUR_REAL_EMAIL_HERE@gmail.com" 
+email_receiver = "zmeseldzija@gmail.com" 
 
 def send_email():
     if not email_sender or not email_password:
