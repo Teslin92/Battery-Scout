@@ -5,7 +5,8 @@ import pandas as pd
 
 # --- CONFIGURATION ---
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-SHEET_NAME = "Battery Subscribers"  # <--- Make sure this matches your Sheet Name
+# ⚠️ MAKE SURE THIS MATCHES YOUR GOOGLE SHEET NAME EXACTLY
+SHEET_NAME = "Battery Subscribers"  
 
 # --- GOOGLE SHEETS CONNECTION ---
 def get_sheet():
@@ -20,7 +21,7 @@ def save_subscriber(email, topics):
     """Appends the user to the Google Sheet"""
     try:
         sheet = get_sheet()
-        # Convert the list of topics ['Lithium', 'Cobalt'] into a string 'Lithium|Cobalt'
+        # Convert list ['Lithium', 'Cobalt'] -> string 'Lithium|Cobalt'
         topic_string = "|".join(topics) 
         sheet.append_row([email, topic_string])
         return True
@@ -39,7 +40,8 @@ with st.form("subscribe_form"):
     
     st.write("### Select Your Interests:")
     
-    # --- CATEGORY 1: CHEMISTRY ---
+    # --- CATEGORY 1: CHEMISTRY (The "Invisible Integration" Topics) ---
+    # When users click these, we will eventually search English AND Chinese keywords
     with st.expander("🧪 Next-Gen Tech & Chemistry"):
         tech_choices = st.multiselect(
             "Select Tech Topics:",
@@ -53,16 +55,16 @@ with st.form("subscribe_form"):
             ]
         )
 
-    # --- CATEGORY 2: POLICY ---
+    # --- CATEGORY 2: POLICY (With the New China Option) ---
     with st.expander("🏛️ Policy, Trade & Markets"):
         policy_choices = st.multiselect(
             "Select Policy Topics:",
             [
                 "Inflation Reduction Act",
                 "Battery Passport Regulation",
+                "China Battery Supply Chain & Policy", # <--- NEW HYBRID ITEM
                 "Critical Minerals & Mining",
                 "Geopolitics & Tariffs",
-                "Battery Recycling"
             ]
         )
 
@@ -75,6 +77,7 @@ with st.form("subscribe_form"):
                 "Gigafactory Construction",
                 "Grid Storage (BESS)",
                 "Electric Vehicle Supply Chain"
+                "Battery Recycling"
             ]
         )
 
