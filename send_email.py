@@ -4,6 +4,7 @@ import ssl
 import json
 import feedparser
 import urllib.parse
+import google.generativeai as genai
 from datetime import datetime, timedelta
 from email.message import EmailMessage
 from email.mime.text import MIMEText
@@ -17,10 +18,41 @@ api_key = os.environ.get("GOOGLE_API_KEY")
 email_sender = os.environ.get("EMAIL_ADDRESS")
 email_password = os.environ.get("EMAIL_PASSWORD")
 service_account_info = json.loads(os.environ.get("GCP_SERVICE_ACCOUNT"))
+gemini_key = os.environ.get("GEMINI_API_KEY")
 
 # ⚠️ PASTE YOUR SPREADSHEET ID HERE ⚠️
 SPREADSHEET_ID = '1jaE61a613sqmxQnT_UncrbHzAsqYPqDwdIZGqoJ5Lc8' 
 RANGE_NAME = 'Sheet1!A:C' 
+
+# --- AI SETUP ---
+if gemini_key:
+    genai.configure(api_key=gemini_key)
+
+# --- HYBRID MAPPING (English Topic -> Chinese Search Term) ---
+# This now covers ALL categories from your Streamlit App
+CHINESE_MAPPING = {
+    # 🧪 Tech & Chemistry
+    "Solid State Batteries": "固态电池",
+    "Sodium-Ion": "钠离子电池",
+    "Silicon Anode": "硅负极 电池",
+    "LFP Battery": "磷酸铁锂 电池",
+    "Lithium Metal Anode": "锂金属负极",
+    "Vanadium Redox Flow": "全钒液流电池",
+    
+    # 🏛️ Policy & Markets
+    "Inflation Reduction Act": "IRA法案 电池 OR 通胀削减法案 电池",
+    "Battery Passport Regulation": "电池护照 欧盟",
+    "China Battery Supply Chain & Policy": "电池 出口管制 商务部",
+    "Critical Minerals & Mining": "锂矿 开采 OR 关键矿产 电池",
+    "Geopolitics & Tariffs": "电池 关税 欧盟 OR 301条款 电池",
+    "Battery Recycling": "动力电池回收 OR 电池循环利用",
+
+    # ⚙️ Industry & Safety
+    "Thermal Runaway & Safety": "电池 热失控 安全",
+    "Gigafactory Construction": "动力电池 投产",
+    "Grid Storage (BESS)": "储能电站 OR 工商业储能",
+    "Electric Vehicle Supply Chain": "电动汽车 供应链"
+}
 
 def get_subscribers_from_sheet():
     creds = service_account.Credentials.from_service_account_info(
@@ -39,6 +71,26 @@ def is_article_new(published_date_str):
     except:
         return False
 
+def ai_summarize_chinese(title, snippet):
+    """Uses Gemini to translate and summarize Chinese news"""
+    if not gemini_key: return f"Translation unavailable: {title}"
+    
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = f"""
+        Translate this Chinese battery news into English. 
+        Title: {title}
+        Snippet: {snippet}
+        
+        Task: Provide a 1-sentence summary of the core business or technical update. 
+        Start with "🇨🇳 China Update:". Do not just translate the title.
+        """
+        response = model.generate_content(prompt)
+        return response.text.strip()
+    except Exception as e:
+        print(f"AI Error: {e}")
+        return f"🇨🇳 New Update (Translation Failed): {title}"
+
 def send_email():
     if not email_sender or not email_password:
         print("Error: Secrets not found.")
@@ -50,7 +102,7 @@ def send_email():
         print(f"Failed to read Sheet: {e}")
         return
 
-    subscribers = rows[1:] # Skip header
+    subscribers = rows[1:] 
     context = ssl.create_default_context()
     
     with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
@@ -66,50 +118,73 @@ def send_email():
             print(f"🔎 Scouting news for: {user_email}")
 
             email_body_html = """
-            <h1 style='color: #2E86C1;'>🕵🏻‍♂️ The Battery Scout Brief</h1>
+            <h1 style='color: #2E86C1;'>🕵🏻‍♂️ The Battery Scout Brief 🔋</h1>
             <p>Here are the latest updates for your tracked topics from the last 24 hours:</p>
             <hr>
             """
             
             news_found_count = 0
             topic_list = raw_topics.split("|")
-            
-            # --- NEW: Global Memory for this user ---
             seen_urls = set() 
 
             for topic in topic_list:
                 if not topic: continue
-                simple_topic = topic.replace('(', '').replace(')', '').split(' OR ')[0].replace('"', '')
-                search_term = simple_topic if "battery" in simple_topic.lower() else f"{simple_topic} battery"
-
-                safe_query = urllib.parse.quote(search_term)
-                rss_url = f"https://news.google.com/rss/search?q={safe_query}+when:1d&hl=en-CA&gl=CA&ceid=CA:en"
-                feed = feedparser.parse(rss_url)
                 
+                # 1. SETUP SEARCHES (English + Optional Chinese)
+                searches = []
+                
+                # English Search
+                simple_topic = topic.replace('(', '').replace(')', '').split(' OR ')[0].replace('"', '')
+                eng_query = simple_topic if "battery" in simple_topic.lower() else f"{simple_topic} battery"
+                searches.append({"lang": "en", "term": simple_topic, "query": eng_query, "region": "US"})
+                
+                # Chinese Search (Hybrid Mode)
+                if topic in CHINESE_MAPPING:
+                    cn_query = CHINESE_MAPPING[topic]
+                    searches.append({"lang": "cn", "term": simple_topic, "query": cn_query, "region": "CN"})
+
                 topic_header_added = False
-                topic_article_count = 0
-
-                for entry in feed.entries:
-                    if topic_article_count >= 5: break 
-                    if not is_article_new(entry.published): continue
+                
+                for search in searches:
+                    safe_query = urllib.parse.quote(search["query"])
+                    # Switch region based on language
+                    gl = "CN" if search["lang"] == "cn" else "US"
+                    hl = "zh-CN" if search["lang"] == "cn" else "en-US"
                     
-                    # --- NEW: Check for duplicates ---
-                    if entry.link in seen_urls:
-                        continue
-                    seen_urls.add(entry.link)
-
-                    if not topic_header_added:
-                        email_body_html += f"<h3>🔋 {simple_topic.title()}</h3>"
-                        topic_header_added = True
+                    rss_url = f"https://news.google.com/rss/search?q={safe_query}+when:1d&hl={hl}&gl={gl}&ceid={gl}:{hl}"
+                    feed = feedparser.parse(rss_url)
                     
-                    email_body_html += f"<p>• <a href='{entry.link}'>{entry.title}</a> <span style='color: #888; font-size: 0.8em;'>({entry.published[:16]})</span></p>"
+                    article_count = 0
                     
-                    news_found_count += 1
-                    topic_article_count += 1
+                    for entry in feed.entries:
+                        if article_count >= 3: break # Max 3 articles per language
+                        if not is_article_new(entry.published): continue
+                        if entry.link in seen_urls: continue
+                        
+                        seen_urls.add(entry.link)
+                        
+                        if not topic_header_added:
+                            email_body_html += f"<h3>🔋 {simple_topic.title()}</h3>"
+                            topic_header_added = True
+                        
+                        # PROCESS ARTICLE
+                        display_title = entry.title
+                        display_note = ""
+                        
+                        # If Chinese, call the AI
+                        if search["lang"] == "cn":
+                            print(f"   🤖 AI Analyzing: {entry.title[:15]}...")
+                            ai_summary = ai_summarize_chinese(entry.title, entry.summary if hasattr(entry, 'summary') else "")
+                            display_title = ai_summary # Replace title with AI summary
+                            display_note = f"<br><a href='{entry.link}' style='font-size:0.8em'>[Original Chinese Source]</a>"
+                        
+                        email_body_html += f"<p>• <a href='{entry.link}'>{display_title}</a> <span style='color: #888; font-size: 0.8em;'>({entry.published[:16]})</span>{display_note}</p>"
+                        
+                        news_found_count += 1
+                        article_count += 1
 
             if news_found_count > 0:
                 email_body_html += "<hr><p style='font-size: 12px; color: #666;'>Powered by Battery Scout Automation</p>"
-                
                 msg = MIMEMultipart()
                 msg['From'] = email_sender
                 msg['To'] = user_email
