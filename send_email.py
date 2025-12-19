@@ -33,7 +33,6 @@ def get_subscribers_from_sheet():
 def is_article_new(published_date_str):
     try:
         pub_date = date_parser.parse(published_date_str).replace(tzinfo=None)
-        # Check if published in the last 24 hours
         if (datetime.utcnow() - pub_date) < timedelta(hours=24):
             return True
         return False
@@ -64,17 +63,19 @@ def send_email():
             
             if not user_email or "@" not in user_email: continue
             
-            # --- CUSTOMIZED MESSAGE START ---
-            # We build the message in a variable first
+            print(f"🔎 Scouting news for: {user_email}")
+
             email_body_html = """
             <h1 style='color: #2E86C1;'>🕵🏻‍♂️ The Battery Scout Brief</h1>
             <p>Here are the latest updates for your tracked topics from the last 24 hours:</p>
             <hr>
             """
-            # --- CUSTOMIZED MESSAGE END ---
             
             news_found_count = 0
             topic_list = raw_topics.split("|")
+            
+            # --- NEW: Global Memory for this user ---
+            seen_urls = set() 
 
             for topic in topic_list:
                 if not topic: continue
@@ -91,6 +92,11 @@ def send_email():
                 for entry in feed.entries:
                     if topic_article_count >= 5: break 
                     if not is_article_new(entry.published): continue
+                    
+                    # --- NEW: Check for duplicates ---
+                    if entry.link in seen_urls:
+                        continue
+                    seen_urls.add(entry.link)
 
                     if not topic_header_added:
                         email_body_html += f"<h3>🔋 {simple_topic.title()}</h3>"
@@ -102,16 +108,12 @@ def send_email():
                     topic_article_count += 1
 
             if news_found_count > 0:
-                # --- FOOTER ADDED HERE ---
                 email_body_html += "<hr><p style='font-size: 12px; color: #666;'>Powered by Battery Scout Automation</p>"
                 
                 msg = MIMEMultipart()
                 msg['From'] = email_sender
                 msg['To'] = user_email
                 msg['Subject'] = f"Battery Scout: {news_found_count} New Updates Today"
-                
-                # THIS WAS THE FIX:
-                # We pass the variable 'email_body_html' directly, and tell it that it is 'html'
                 msg.attach(MIMEText(email_body_html, 'html'))
                 
                 try:
