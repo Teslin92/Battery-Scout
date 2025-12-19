@@ -76,7 +76,7 @@ with st.form("subscribe_form"):
                 "Thermal Runaway & Safety",
                 "Gigafactory Construction",
                 "Grid Storage (BESS)",
-                "Electric Vehicle Supply Chain"
+                "Electric Vehicle Supply Chain",
                 "Battery Recycling"
             ]
         )
