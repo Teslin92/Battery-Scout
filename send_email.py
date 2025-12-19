@@ -45,13 +45,13 @@ CHINESE_MAPPING = {
     "China Battery Supply Chain & Policy": "电池 出口管制 商务部",
     "Critical Minerals & Mining": "锂矿 开采 OR 关键矿产 电池",
     "Geopolitics & Tariffs": "电池 关税 欧盟 OR 301条款 电池",
-    "Battery Recycling": "动力电池回收 OR 电池循环利用",
 
     # ⚙️ Industry & Safety
     "Thermal Runaway & Safety": "电池 热失控 安全",
     "Gigafactory Construction": "动力电池 投产",
     "Grid Storage (BESS)": "储能电站 OR 工商业储能",
-    "Electric Vehicle Supply Chain": "电动汽车 供应链"
+    "Electric Vehicle Supply Chain": "电动汽车 供应链",
+    "Battery Recycling": "动力电池回收 OR 电池循环利用",
 }
 
 def get_subscribers_from_sheet():
