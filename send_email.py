@@ -76,7 +76,7 @@ def ai_summarize_chinese(title, snippet):
     if not gemini_key: return f"Translation unavailable: {title}"
     
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         prompt = f"""
         Translate this Chinese battery news into English. 
         Title: {title}
