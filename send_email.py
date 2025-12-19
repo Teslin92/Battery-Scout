@@ -29,7 +29,6 @@ if gemini_key:
     genai.configure(api_key=gemini_key)
 
 # --- HYBRID MAPPING (English Topic -> Chinese Search Term) ---
-# This now covers ALL categories from your Streamlit App
 CHINESE_MAPPING = {
     # 🧪 Tech & Chemistry
     "Solid State Batteries": "固态电池",
@@ -76,6 +75,7 @@ def ai_summarize_chinese(title, snippet):
     if not gemini_key: return f"Translation unavailable: {title}"
     
     try:
+        # UPDATED TO GEMINI 2.5
         model = genai.GenerativeModel('gemini-2.5-flash')
         prompt = f"""
         Translate this Chinese battery news into English. 
@@ -125,7 +125,10 @@ def send_email():
             
             news_found_count = 0
             topic_list = raw_topics.split("|")
+            
+            # TRACKING SETS (Reset per user)
             seen_urls = set() 
+            seen_titles = set() # <--- NEW: Tracks titles to prevent syndication duplicates
 
             for topic in topic_list:
                 if not topic: continue
@@ -159,9 +162,17 @@ def send_email():
                     for entry in feed.entries:
                         if article_count >= 3: break # Max 3 articles per language
                         if not is_article_new(entry.published): continue
-                        if entry.link in seen_urls: continue
+
+                        # --- DUPLICATE CHECKER (UPDATED) ---
+                        # Clean title to remove source: "Battery News - CNN" -> "battery news"
+                        clean_title = entry.title.split(" - ")[0].strip().lower()
+
+                        if entry.link in seen_urls or clean_title in seen_titles: 
+                            continue
                         
                         seen_urls.add(entry.link)
+                        seen_titles.add(clean_title)
+                        # -----------------------------------
                         
                         if not topic_header_added:
                             email_body_html += f"<h3>🔋 {simple_topic.title()}</h3>"
