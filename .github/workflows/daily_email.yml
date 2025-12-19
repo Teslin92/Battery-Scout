@@ -19,7 +19,7 @@ jobs:
           python-version: '3.11'
 
       - name: Install libraries
-        run: pip install requests google-auth google-api-python-client feedparser python-dateutil
+        run: pip install requests google-auth google-api-python-client feedparser python-dateutil google-generativeai
 
       - name: Run script
         env:
