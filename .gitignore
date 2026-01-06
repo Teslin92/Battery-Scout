@@ -1,3 +1,30 @@
+# Virtual environment
 venv/
+env/
+.venv/
+
+# Credentials and secrets
 credentials.json
 secrets.py
+*.key
+*.pem
+
+# Environment variables
+.env
+.env.local
+
+# History and cache
+history.txt
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

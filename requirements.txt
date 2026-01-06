@@ -1,5 +1,24 @@
+# Web framework
 streamlit
+
+# Data processing
 pandas
+
+# RSS feed parsing
 feedparser
+
+# Google Sheets integration
 gspread
 oauth2client
+
+# Google Cloud APIs
+google-auth
+google-api-python-client
+google-auth-httplib2
+google-generativeai
+
+# Date/time handling
+python-dateutil
+
+# HTTP requests
+requests

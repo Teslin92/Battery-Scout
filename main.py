@@ -11,8 +11,8 @@ from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 
 # --- CONFIGURATION ---
-YOUR_EMAIL = "zmeseldzija@gmail.com"  # <--- FILL THIS IN
-YOUR_APP_PASSWORD = "mqhh hguf ivxf vgtr" # <--- FILL THIS IN
+YOUR_EMAIL = os.environ.get("EMAIL_ADDRESS")
+YOUR_APP_PASSWORD = os.environ.get("EMAIL_PASSWORD")
 HISTORY_FILE = "history.txt"
 SHEET_NAME = "Battery Subscribers" # <--- MATCH YOUR GOOGLE SHEET NAME
 

@@ -67,7 +67,8 @@ def is_article_new(published_date_str):
         if (datetime.utcnow() - pub_date) < timedelta(hours=24):
             return True
         return False
-    except:
+    except (ValueError, TypeError, AttributeError) as e:
+        print(f"Warning: Could not parse date '{published_date_str}': {e}")
         return False
 
 def ai_summarize_chinese(title, snippet):
