@@ -20,6 +20,11 @@ email_password = os.environ.get("EMAIL_PASSWORD")
 service_account_info = json.loads(os.environ.get("GCP_SERVICE_ACCOUNT"))
 gemini_key = os.environ.get("GEMINI_API_KEY")
 
+# --- TEST MODE ---
+# Set TEST_MODE=true in GitHub Secrets to only send to TEST_EMAIL
+TEST_MODE = os.environ.get("TEST_MODE", "false").lower() == "true"
+TEST_EMAIL = os.environ.get("TEST_EMAIL", email_sender)  # Defaults to your sender email
+
 # ⚠️ PASTE YOUR SPREADSHEET ID HERE ⚠️
 SPREADSHEET_ID = '1jaE61a613sqmxQnT_UncrbHzAsqYPqDwdIZGqoJ5Lc8' 
 RANGE_NAME = 'Sheet1!A:C' 
@@ -97,15 +102,19 @@ def send_email():
         print("Error: Secrets not found.")
         return
 
+    # TEST MODE CHECK
+    if TEST_MODE:
+        print(f"⚠️  TEST MODE ENABLED - Only sending to: {TEST_EMAIL}")
+
     try:
         rows = get_subscribers_from_sheet()
     except Exception as e:
         print(f"Failed to read Sheet: {e}")
         return
 
-    subscribers = rows[1:] 
+    subscribers = rows[1:]
     context = ssl.create_default_context()
-    
+
     with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
         smtp.login(email_sender, email_password)
 
@@ -113,9 +122,14 @@ def send_email():
             if len(row) < 2: continue
             user_email = row[0]
             raw_topics = row[1]
-            
+
             if not user_email or "@" not in user_email: continue
-            
+
+            # TEST MODE: Skip all subscribers except the test email
+            if TEST_MODE and user_email != TEST_EMAIL:
+                print(f"⏭️  Skipping {user_email} (test mode)")
+                continue
+
             print(f"🔎 Scouting news for: {user_email}")
 
             email_body_html = """
