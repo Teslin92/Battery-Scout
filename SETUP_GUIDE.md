@@ -93,60 +93,15 @@ When you're ready to push these fixes:
 
 ---
 
-## 🧪 Test Mode - Safely Test Without Spamming Subscribers
-
-Battery Scout now has a **Test Mode** that lets you test changes without sending emails to all your subscribers!
-
-### How to Enable Test Mode:
-
-1. Go to your GitHub repository
-2. Click **Settings** → **Secrets and variables** → **Actions**
-3. Click **New repository secret**
-4. Name: `TEST_MODE`
-5. Value: `true`
-6. Click **Add secret**
-
-### (Optional) Set a Custom Test Email:
-
-By default, test emails go to your sender email. To use a different email:
-
-1. Add another secret named `TEST_EMAIL`
-2. Value: Your test email address (e.g., `your.test@gmail.com`)
-3. Make sure this email exists in your Google Sheet subscribers list!
-
-### Using Test Mode:
-
-**When TEST_MODE is enabled:**
-- ✅ Only sends to your test email
-- ⏭️  Skips all other subscribers
-- 🔍 Shows "TEST MODE ENABLED" in logs
-
-**To run a test:**
-1. Make sure `TEST_MODE=true` is set in GitHub Secrets
-2. Go to **Actions** tab → **Daily Email Sender**
-3. Click **Run workflow** → **Run workflow**
-4. Check the logs to see "TEST MODE ENABLED"
-5. Only you will receive the email!
-
-**To go back to production:**
-1. Go to GitHub Secrets
-2. Find `TEST_MODE`
-3. Click **Update** and change value to `false`
-4. Or simply **delete** the `TEST_MODE` secret
-
----
-
 ## 🔍 Verify Everything Works
 
 After rotating the key and pushing changes:
 
-1. **Enable Test Mode** (see above)
-2. Go to your GitHub repository
-3. Click **Actions** tab
-4. Click **Daily Email Sender** workflow
-5. Click **Run workflow** → **Run workflow** (to test manually)
-6. Wait a few minutes and check if it succeeds
-7. Check your email inbox!
+1. Go to your GitHub repository
+2. Click **Actions** tab
+3. Click **Daily Email Sender** workflow
+4. Click **Run workflow** → **Run workflow** (to test manually)
+5. Wait a few minutes and check if it succeeds
 
 ---
 
