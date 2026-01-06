@@ -59,12 +59,16 @@ def remove_subscriber(email):
     return False
 
 # --- MAIN APP LAYOUT ---
-st.set_page_config(page_title="Battery Scout", page_icon="🔋")
+st.set_page_config(
+    page_title="Battery Scout - Daily Battery Industry News",
+    page_icon="⚡",
+    layout="wide"
+)
 
 # --- UNSUBSCRIBE HANDLING ---
 query_params = st.query_params
 if "unsubscribe" in query_params:
-    st.title("🔋 Battery Scout - Unsubscribe")
+    st.title("Battery Scout - Unsubscribe")
     token = query_params["unsubscribe"]
     email = verify_unsubscribe_token(token)
 
@@ -75,108 +79,123 @@ if "unsubscribe" in query_params:
 
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("✅ Yes, Unsubscribe", type="primary"):
+            if st.button("Yes, Unsubscribe", type="primary"):
                 if remove_subscriber(email):
-                    st.success("✅ You've been successfully unsubscribed. Sorry to see you go!")
+                    st.success("You've been successfully unsubscribed. Sorry to see you go!")
                     st.write("You will no longer receive Battery Scout emails.")
                 else:
                     st.error("Could not find your email in our system. You may already be unsubscribed.")
         with col2:
-            if st.button("❌ No, Keep Me Subscribed"):
+            if st.button("No, Keep Me Subscribed"):
                 st.info("Great! You'll continue receiving daily battery industry updates.")
     else:
-        st.error("❌ Invalid unsubscribe link. Please contact support if you need help.")
+        st.error("Invalid unsubscribe link. Please contact support if you need help.")
     st.stop()
 
 # --- NORMAL SUBSCRIPTION PAGE ---
-st.title("🔋 Battery Scout")
-st.write("Get daily AI-curated email with the latest battery tech, policy & supply chain news.")
-
-# --- MIGRATION NOTICE ---
-st.info("""
-📢 **Important Update for Existing Subscribers**
-
-We've streamlined our categories from 16 to 10 comprehensive topics to reduce duplicate articles and improve relevance.
-
-**If you're already subscribed**, your old categories still work, but we recommend re-subscribing with the new categories below for a better experience.
-
-New subscribers: Welcome! Just select your interests below.
-""")
+st.title("Battery Scout")
+st.markdown("### Stay ahead of the battery industry with AI-curated daily news")
+st.write("Get personalized updates on technology breakthroughs, policy changes, and supply chain developments delivered to your inbox.")
 
 with st.form("subscribe_form"):
-    email = st.text_input("Your Email Address", placeholder="name@company.com")
+    email = st.text_input("Email Address", placeholder="your.email@company.com")
 
-    st.write("### Select Your Interests:")
+    st.write("### Choose Your Topics")
+    st.caption("Select one or more areas you'd like to track")
 
-    # --- NEW 10-CATEGORY STRUCTURE ---
+    # Create three columns for organized layout
+    col1, col2, col3 = st.columns(3)
 
     # Battery Technologies
-    with st.expander("🔋 Battery Technologies"):
+    with col1:
+        st.markdown("**Battery Technologies**")
         tech_choices = st.multiselect(
-            "Select Technology Topics:",
+            "Technology",
             [
                 "Next-Gen Batteries",
                 "Advanced Materials",
                 "Energy Storage Systems",
                 "Battery Safety & Performance"
             ],
-            help="Solid state, sodium-ion, advanced anodes/cathodes, grid storage, safety"
+            label_visibility="collapsed"
         )
+        st.caption("Solid state, sodium-ion, anodes/cathodes, grid storage")
 
     # Policy & Markets
-    with st.expander("🏛️ Policy & Markets"):
+    with col2:
+        st.markdown("**Policy & Markets**")
         policy_choices = st.multiselect(
-            "Select Policy Topics:",
+            "Policy",
             [
                 "US Policy & Incentives",
                 "EU Regulations",
                 "China Industry & Trade"
             ],
-            help="IRA, tax credits, Battery Passport, trade policy"
+            label_visibility="collapsed"
         )
+        st.caption("IRA, tax credits, regulations, trade policy")
 
     # Supply Chain & Sustainability
-    with st.expander("♻️ Supply Chain & Sustainability"):
+    with col3:
+        st.markdown("**Supply Chain & Sustainability**")
         supply_choices = st.multiselect(
-            "Select Supply Chain Topics:",
+            "Supply Chain",
             [
                 "Critical Minerals & Mining",
                 "Manufacturing & Gigafactories",
                 "Recycling & Circular Economy"
             ],
-            help="Lithium/cobalt mining, battery plants, recycling, second-life"
+            label_visibility="collapsed"
         )
+        st.caption("Mining, manufacturing, recycling, circularity")
 
     # Combine all choices into one list
     all_selected_topics = tech_choices + policy_choices + supply_choices
 
-    submitted = st.form_submit_button("Subscribe for Free")
+    st.write("")  # Spacing
+    submitted = st.form_submit_button("Subscribe for Free", type="primary", use_container_width=True)
 
     if submitted:
         if email and "@" in email and all_selected_topics:
             with st.spinner("Saving your preferences..."):
                 success = save_subscriber(email, all_selected_topics)
                 if success:
-                    st.success(f"✅ You're in! We'll start scouting news for: {', '.join(all_selected_topics)}")
+                    st.success(f"Success! You're subscribed to {len(all_selected_topics)} topic(s). Check your inbox tomorrow for your first update.")
         elif not email:
-            st.warning("⚠️ Please enter your email.")
+            st.warning("Please enter your email address.")
         elif not all_selected_topics:
-            st.warning("⚠️ Please select at least one topic.")
+            st.warning("Please select at least one topic.")
 
-# --- DONATION SECTION ---
+# --- FEATURES SECTION ---
 st.divider()
-st.subheader("☕ Support Battery Scout")
-st.write("Enjoying daily battery industry updates? Help keep this service free!")
 
 col1, col2, col3 = st.columns(3)
 with col1:
-    if st.button("☕ Buy Me a Coffee"):
-        st.info("🚧 Payment integration coming soon! Thank you for your interest.")
+    st.markdown("**AI-Powered Summaries**")
+    st.write("Every article includes a concise AI-generated summary so you can quickly identify what matters most.")
 with col2:
-    if st.button("💝 One-Time Donation"):
-        st.info("🚧 Payment integration coming soon! Thank you for your interest.")
+    st.markdown("**Global Coverage**")
+    st.write("Track developments from the US, EU, and China with bilingual news aggregation and translation.")
 with col3:
-    if st.button("🌟 Become a Sponsor"):
-        st.info("🚧 Sponsorship opportunities coming soon!")
+    st.markdown("**Zero Spam**")
+    st.write("Personalized daily digest delivered to your inbox. Unsubscribe anytime with one click.")
 
-st.caption("All donations help cover AI and infrastructure costs to keep Battery Scout running.")
+# --- DONATION SECTION ---
+st.divider()
+st.subheader("Support Battery Scout")
+st.write("Help keep this service free and ad-free by supporting our infrastructure and AI costs.")
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    if st.button("Buy Me a Coffee"):
+        st.info("Payment integration coming soon. Thank you for your interest!")
+with col2:
+    if st.button("One-Time Donation"):
+        st.info("Payment integration coming soon. Thank you for your interest!")
+with col3:
+    if st.button("Become a Sponsor"):
+        st.info("Sponsorship opportunities coming soon!")
+
+# --- FOOTER ---
+st.divider()
+st.caption("Battery Scout aggregates and curates publicly available news from Google News RSS feeds. © 2026 Battery Scout. All rights reserved.")
