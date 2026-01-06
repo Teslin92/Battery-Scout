@@ -4,7 +4,7 @@ import ssl
 import json
 import feedparser
 import urllib.parse
-import google.generativeai as genai
+from google import genai
 import time
 import hashlib
 import base64
@@ -25,12 +25,12 @@ service_account_info = json.loads(os.environ.get("GCP_SERVICE_ACCOUNT"))
 gemini_key = os.environ.get("GEMINI_API_KEY")
 
 # ⚠️ PASTE YOUR SPREADSHEET ID HERE ⚠️
-SPREADSHEET_ID = '1jaE61a613sqmxQnT_UncrbHzAsqYPqDwdIZGqoJ5Lc8' 
-RANGE_NAME = 'Sheet1!A:C' 
+SPREADSHEET_ID = '1jaE61a613sqmxQnT_UncrbHzAsqYPqDwdIZGqoJ5Lc8'
+RANGE_NAME = 'Sheet1!A:C'
 
 # --- AI SETUP ---
 if gemini_key:
-    genai.configure(api_key=gemini_key)
+    client = genai.Client(api_key=gemini_key)
 
 # --- AI RATE LIMITING ---
 AI_CALL_DELAY = 0.5  # 500ms between calls to respect rate limits
@@ -127,8 +127,6 @@ def ai_summarize_article(title, snippet="", is_chinese=False):
 
         ai_call_count += 1
 
-        model = genai.GenerativeModel('gemini-2.5-flash')
-
         if is_chinese:
             prompt = f"""
             Translate this Chinese battery news into English.
@@ -149,7 +147,10 @@ def ai_summarize_article(title, snippet="", is_chinese=False):
             Task: Write a concise 1-sentence summary that captures the key insight.
             """
 
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model='gemini-2.0-flash-exp',
+            contents=prompt
+        )
         summary = response.text.strip()
 
         print(f"   🤖 AI Summary ({ai_call_count}/{MAX_AI_CALLS_PER_RUN}): {summary[:50]}...")
