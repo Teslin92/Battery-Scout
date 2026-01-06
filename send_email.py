@@ -5,6 +5,9 @@ import json
 import feedparser
 import urllib.parse
 import google.generativeai as genai
+import time
+import hashlib
+import base64
 from datetime import datetime, timedelta
 from email.message import EmailMessage
 from email.mime.text import MIMEText
@@ -12,6 +15,7 @@ from email.mime.multipart import MIMEMultipart
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from dateutil import parser as date_parser
+import email_template
 
 # --- CONFIGURATION ---
 api_key = os.environ.get("GOOGLE_API_KEY")
@@ -28,24 +32,42 @@ RANGE_NAME = 'Sheet1!A:C'
 if gemini_key:
     genai.configure(api_key=gemini_key)
 
+# --- AI RATE LIMITING ---
+AI_CALL_DELAY = 0.5  # 500ms between calls to respect rate limits
+ai_call_count = 0
+MAX_AI_CALLS_PER_RUN = 200  # Safety limit
+
 # --- HYBRID MAPPING (English Topic -> Chinese Search Term) ---
 CHINESE_MAPPING = {
-    # 🧪 Tech & Chemistry
+    # NEW 10-CATEGORY STRUCTURE
+    # 🔋 Battery Technologies
+    "Next-Gen Batteries": "固态电池 OR 钠离子电池 OR 下一代电池",
+    "Advanced Materials": "硅负极 OR 锂金属负极 OR 磷酸铁锂 OR LMFP",
+    "Energy Storage Systems": "储能电站 OR 工商业储能 OR 全钒液流电池",
+    "Battery Safety & Performance": "电池 热失控 安全 OR 电池测试",
+
+    # 🏛️ Policy & Markets
+    "US Policy & Incentives": "IRA法案 电池 OR 通胀削减法案 电池 OR 美国 电池 补贴",
+    "EU Regulations": "电池护照 欧盟 OR 欧盟电池法规 OR CBAM 电池",
+    "China Industry & Trade": "电池 出口管制 商务部 OR 动力电池 产业政策",
+
+    # ♻️ Supply Chain & Sustainability
+    "Critical Minerals & Mining": "锂矿 开采 OR 关键矿产 电池 OR 钴矿 镍矿",
+    "Manufacturing & Gigafactories": "动力电池 投产 OR 电池工厂 OR 电动汽车 供应链",
+    "Recycling & Circular Economy": "动力电池回收 OR 电池循环利用 OR 黑粉",
+
+    # LEGACY SUPPORT - Keep old categories for existing subscribers
     "Solid State Batteries": "固态电池",
     "Sodium-Ion": "钠离子电池",
     "Silicon Anode": "硅负极 电池",
     "LFP Battery": "磷酸铁锂 电池",
     "Lithium Metal Anode": "锂金属负极",
     "Vanadium Redox Flow": "全钒液流电池",
-    
-    # 🏛️ Policy & Markets
     "Inflation Reduction Act": "IRA法案 电池 OR 通胀削减法案 电池",
     "Battery Passport Regulation": "电池护照 欧盟",
     "China Battery Supply Chain & Policy": "电池 出口管制 商务部",
     "Critical Minerals & Mining": "锂矿 开采 OR 关键矿产 电池",
     "Geopolitics & Tariffs": "电池 关税 欧盟 OR 301条款 电池",
-
-    # ⚙️ Industry & Safety
     "Thermal Runaway & Safety": "电池 热失控 安全",
     "Gigafactory Construction": "动力电池 投产",
     "Grid Storage (BESS)": "储能电站 OR 工商业储能",
@@ -71,26 +93,73 @@ def is_article_new(published_date_str):
         print(f"Warning: Could not parse date '{published_date_str}': {e}")
         return False
 
-def ai_summarize_chinese(title, snippet):
-    """Uses Gemini to translate and summarize Chinese news"""
-    if not gemini_key: return f"Translation unavailable: {title}"
-    
+def generate_unsubscribe_token(email):
+    """Create secure unsubscribe token"""
+    secret_salt = os.environ.get("UNSUBSCRIBE_SALT", "default_salt_change_me")
+    token = hashlib.sha256(f"{email}{secret_salt}".encode()).hexdigest()[:16]
+    email_encoded = base64.urlsafe_b64encode(email.encode()).decode()
+    return f"{email_encoded}.{token}"
+
+def ai_summarize_article(title, snippet="", is_chinese=False):
+    """
+    Universal AI summarizer for all articles using Gemini 2.5
+
+    Args:
+        title: Article title
+        snippet: Article snippet/description
+        is_chinese: Whether article is in Chinese
+
+    Returns: 1-sentence summary or original title if AI fails
+    """
+    global ai_call_count
+
+    if not gemini_key:
+        return title
+
+    if ai_call_count >= MAX_AI_CALLS_PER_RUN:
+        print(f"⚠️  AI call limit reached ({MAX_AI_CALLS_PER_RUN}). Using original title.")
+        return title
+
     try:
-        # UPDATED TO GEMINI 2.5
+        # Rate limiting delay
+        if ai_call_count > 0:
+            time.sleep(AI_CALL_DELAY)
+
+        ai_call_count += 1
+
         model = genai.GenerativeModel('gemini-2.5-flash')
-        prompt = f"""
-        Translate this Chinese battery news into English. 
-        Title: {title}
-        Snippet: {snippet}
-        
-        Task: Provide a 1-sentence summary of the core business or technical update. 
-        Start with "🇨🇳 China Update:". Do not just translate the title.
-        """
+
+        if is_chinese:
+            prompt = f"""
+            Translate this Chinese battery news into English.
+            Title: {title}
+            Snippet: {snippet}
+
+            Task: Provide a 1-sentence summary of the core business or technical update.
+            Start with "🇨🇳 China Update:". Do not just translate the title.
+            """
+        else:
+            prompt = f"""
+            Summarize this battery industry news in 1 sentence.
+            Focus on the core business or technical development.
+
+            Title: {title}
+            Snippet: {snippet}
+
+            Task: Write a concise 1-sentence summary that captures the key insight.
+            """
+
         response = model.generate_content(prompt)
-        return response.text.strip()
+        summary = response.text.strip()
+
+        print(f"   🤖 AI Summary ({ai_call_count}/{MAX_AI_CALLS_PER_RUN}): {summary[:50]}...")
+        return summary
+
     except Exception as e:
-        print(f"AI Error: {e}")
-        return f"🇨🇳 New Update (Translation Failed): {title}"
+        print(f"⚠️  AI Error: {e}")
+        if is_chinese:
+            return f"🇨🇳 {title}"
+        return title
 
 def send_email():
     if not email_sender or not email_password:
@@ -118,18 +187,16 @@ def send_email():
             
             print(f"🔎 Scouting news for: {user_email}")
 
-            email_body_html = """
-            <h1 style='color: #2E86C1;'>🕵🏻‍♂️ The Battery Scout Brief 🔋</h1>
-            <p>Here are the latest updates for your tracked topics from the last 24 hours:</p>
-            <hr>
-            """
-            
+            # Use new email template
+            email_body_html = email_template.get_email_header()
+
             news_found_count = 0
             topic_list = raw_topics.split("|")
-            
+            topics_with_articles = []  # Track which topics have articles for subject line
+
             # TRACKING SETS (Reset per user)
-            seen_urls = set() 
-            seen_titles = set() # <--- NEW: Tracks titles to prevent syndication duplicates
+            seen_urls = set()
+            seen_titles = set()
 
             for topic in topic_list:
                 if not topic: continue
@@ -148,59 +215,90 @@ def send_email():
                     searches.append({"lang": "cn", "term": simple_topic, "query": cn_query, "region": "CN"})
 
                 topic_header_added = False
-                
+                topic_article_count = 0
+
                 for search in searches:
                     safe_query = urllib.parse.quote(search["query"])
                     # Switch region based on language
                     gl = "CN" if search["lang"] == "cn" else "US"
                     hl = "zh-CN" if search["lang"] == "cn" else "en-US"
-                    
+
                     rss_url = f"https://news.google.com/rss/search?q={safe_query}+when:1d&hl={hl}&gl={gl}&ceid={gl}:{hl}"
                     feed = feedparser.parse(rss_url)
-                    
+
                     article_count = 0
-                    
+
                     for entry in feed.entries:
                         if article_count >= 3: break # Max 3 articles per language
                         if not is_article_new(entry.published): continue
 
-                        # --- DUPLICATE CHECKER (UPDATED) ---
-                        # Clean title to remove source: "Battery News - CNN" -> "battery news"
+                        # --- DUPLICATE CHECKER ---
                         clean_title = entry.title.split(" - ")[0].strip().lower()
-
-                        if entry.link in seen_urls or clean_title in seen_titles: 
+                        if entry.link in seen_urls or clean_title in seen_titles:
                             continue
-                        
+
                         seen_urls.add(entry.link)
                         seen_titles.add(clean_title)
                         # -----------------------------------
-                        
+
+                        # Add topic header if first article for this topic
                         if not topic_header_added:
-                            email_body_html += f"<h3>🔋 {simple_topic.title()}</h3>"
+                            # We'll add it after we know there are articles
                             topic_header_added = True
-                        
-                        # PROCESS ARTICLE
-                        display_title = entry.title
-                        display_note = ""
-                        
-                        # If Chinese, call the AI
-                        if search["lang"] == "cn":
-                            print(f"   🤖 AI Analyzing: {entry.title[:15]}...")
-                            ai_summary = ai_summarize_chinese(entry.title, entry.summary if hasattr(entry, 'summary') else "")
-                            display_title = ai_summary # Replace title with AI summary
-                            display_note = f"<br><a href='{entry.link}' style='font-size:0.8em'>[Original Chinese Source]</a>"
-                        
-                        email_body_html += f"<p>• <a href='{entry.link}'>{display_title}</a> <span style='color: #888; font-size: 0.8em;'>({entry.published[:16]})</span>{display_note}</p>"
-                        
+
+                        # PROCESS ARTICLE WITH AI
+                        is_chinese = search["lang"] == "cn"
+                        snippet = entry.summary if hasattr(entry, 'summary') else ""
+
+                        # Get AI summary for ALL articles
+                        ai_summary = ai_summarize_article(entry.title, snippet, is_chinese)
+
+                        # Extract source from feed
+                        source = "Unknown"
+                        if hasattr(entry, 'source') and 'title' in entry.source:
+                            source = entry.source['title']
+
+                        # Add topic section header before first article
+                        if topic_article_count == 0:
+                            email_body_html += email_template.get_topic_section_header(simple_topic.title(), "?")
+
+                        # Add article card
+                        email_body_html += email_template.get_article_card(
+                            title=entry.title,
+                            link=entry.link,
+                            date=entry.published,
+                            source=source,
+                            summary=ai_summary,
+                            is_chinese=is_chinese
+                        )
+
                         news_found_count += 1
                         article_count += 1
+                        topic_article_count += 1
+
+                # Track topics that had articles for subject line
+                if topic_article_count > 0:
+                    topics_with_articles.append(simple_topic.title())
 
             if news_found_count > 0:
-                email_body_html += "<hr><p style='font-size: 12px; color: #666;'>Powered by Battery Scout Automation</p>"
+                # Generate unsubscribe token and add footer
+                unsubscribe_token = generate_unsubscribe_token(user_email)
+                # Update with your actual Streamlit app URL
+                unsubscribe_url = f"https://your-app.streamlit.app/?unsubscribe={unsubscribe_token}"
+                email_body_html += email_template.get_email_footer(unsubscribe_url)
+
+                # Enhanced subject line
+                if len(topics_with_articles) == 1:
+                    subject = f"⚡ Battery Scout: {topics_with_articles[0]} Updates"
+                elif len(topics_with_articles) <= 3:
+                    subject = f"⚡ Battery Scout: {', '.join(topics_with_articles[:2])} + More"
+                else:
+                    subject = f"⚡ Battery Scout: {news_found_count} Updates Across {len(topics_with_articles)} Topics"
+
                 msg = MIMEMultipart()
-                msg['From'] = email_sender
+                msg['From'] = f"Battery Scout <{email_sender}>"
                 msg['To'] = user_email
-                msg['Subject'] = f"Battery Scout: {news_found_count} New Updates Today"
+                msg['Subject'] = subject
                 msg.attach(MIMEText(email_body_html, 'html'))
                 
                 try:

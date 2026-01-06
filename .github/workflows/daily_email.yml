@@ -28,4 +28,5 @@ jobs:
           EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
           GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          UNSUBSCRIBE_SALT: ${{ secrets.UNSUBSCRIBE_SALT }}
         run: python send_email.py

@@ -2,11 +2,13 @@ import streamlit as st
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import pandas as pd
+import hashlib
+import base64
 
 # --- CONFIGURATION ---
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 # ⚠️ MAKE SURE THIS MATCHES YOUR GOOGLE SHEET NAME EXACTLY
-SHEET_NAME = "Battery Subscribers"  
+SHEET_NAME = "Battery Subscribers"
 
 # --- GOOGLE SHEETS CONNECTION ---
 def get_sheet():
@@ -22,67 +24,120 @@ def save_subscriber(email, topics):
     try:
         sheet = get_sheet()
         # Convert list ['Lithium', 'Cobalt'] -> string 'Lithium|Cobalt'
-        topic_string = "|".join(topics) 
+        topic_string = "|".join(topics)
         sheet.append_row([email, topic_string])
         return True
     except Exception as e:
         st.error(f"Error saving to database: {e}")
         return False
 
+def verify_unsubscribe_token(token_string):
+    """Verify unsubscribe token and extract email"""
+    try:
+        email_encoded, token = token_string.split('.')
+        email = base64.urlsafe_b64decode(email_encoded).decode()
+        # Verify with same salt as send_email.py
+        secret_salt = st.secrets.get("unsubscribe_salt", "default_salt_change_me")
+        expected_token = hashlib.sha256(f"{email}{secret_salt}".encode()).hexdigest()[:16]
+        if token == expected_token:
+            return email
+    except Exception:
+        return None
+    return None
+
+def remove_subscriber(email):
+    """Remove subscriber from Google Sheet"""
+    try:
+        sheet = get_sheet()
+        cell = sheet.find(email)
+        if cell:
+            sheet.delete_rows(cell.row)
+            return True
+    except Exception as e:
+        st.error(f"Error removing subscriber: {e}")
+        return False
+    return False
+
 # --- MAIN APP LAYOUT ---
 st.set_page_config(page_title="Battery Scout", page_icon="🔋")
 
+# --- UNSUBSCRIBE HANDLING ---
+query_params = st.query_params
+if "unsubscribe" in query_params:
+    st.title("🔋 Battery Scout - Unsubscribe")
+    token = query_params["unsubscribe"]
+    email = verify_unsubscribe_token(token)
+
+    if email:
+        st.write(f"### Confirm Unsubscribe")
+        st.write(f"Email: **{email}**")
+        st.write("Are you sure you want to unsubscribe from Battery Scout daily updates?")
+
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("✅ Yes, Unsubscribe", type="primary"):
+                if remove_subscriber(email):
+                    st.success("✅ You've been successfully unsubscribed. Sorry to see you go!")
+                    st.write("You will no longer receive Battery Scout emails.")
+                else:
+                    st.error("Could not find your email in our system. You may already be unsubscribed.")
+        with col2:
+            if st.button("❌ No, Keep Me Subscribed"):
+                st.info("Great! You'll continue receiving daily battery industry updates.")
+    else:
+        st.error("❌ Invalid unsubscribe link. Please contact support if you need help.")
+    st.stop()
+
+# --- NORMAL SUBSCRIPTION PAGE ---
 st.title("🔋 Battery Scout")
-st.write("Get a daily AI-curated email with the latest battery tech & policy news.")
+st.write("Get daily AI-curated email with the latest battery tech, policy & supply chain news.")
 
 with st.form("subscribe_form"):
     email = st.text_input("Your Email Address", placeholder="name@company.com")
-    
+
     st.write("### Select Your Interests:")
-    
-    # --- CATEGORY 1: CHEMISTRY (The "Invisible Integration" Topics) ---
-    # When users click these, we will eventually search English AND Chinese keywords
-    with st.expander("🧪 Next-Gen Tech & Chemistry"):
+
+    # --- NEW 10-CATEGORY STRUCTURE ---
+
+    # Battery Technologies
+    with st.expander("🔋 Battery Technologies"):
         tech_choices = st.multiselect(
-            "Select Tech Topics:",
+            "Select Technology Topics:",
             [
-                "Solid State Batteries",
-                "Sodium-Ion",
-                "Silicon Anode",
-                "LFP Battery",
-                "Lithium Metal Anode",
-                "Vanadium Redox Flow"
-            ]
+                "Next-Gen Batteries",
+                "Advanced Materials",
+                "Energy Storage Systems",
+                "Battery Safety & Performance"
+            ],
+            help="Solid state, sodium-ion, advanced anodes/cathodes, grid storage, safety"
         )
 
-    # --- CATEGORY 2: POLICY (With the New China Option) ---
-    with st.expander("🏛️ Policy, Trade & Markets"):
+    # Policy & Markets
+    with st.expander("🏛️ Policy & Markets"):
         policy_choices = st.multiselect(
             "Select Policy Topics:",
             [
-                "Inflation Reduction Act",
-                "Battery Passport Regulation",
-                "China Battery Supply Chain & Policy", # <--- NEW HYBRID ITEM
-                "Critical Minerals & Mining",
-                "Geopolitics & Tariffs",
-            ]
+                "US Policy & Incentives",
+                "EU Regulations",
+                "China Industry & Trade"
+            ],
+            help="IRA, tax credits, Battery Passport, trade policy"
         )
 
-    # --- CATEGORY 3: INDUSTRIAL ---
-    with st.expander("⚙️ Manufacturing & Safety"):
-        industry_choices = st.multiselect(
-            "Select Industry Topics:",
+    # Supply Chain & Sustainability
+    with st.expander("♻️ Supply Chain & Sustainability"):
+        supply_choices = st.multiselect(
+            "Select Supply Chain Topics:",
             [
-                "Thermal Runaway & Safety",
-                "Gigafactory Construction",
-                "Grid Storage (BESS)",
-                "Electric Vehicle Supply Chain",
-                "Battery Recycling"
-            ]
+                "Critical Minerals & Mining",
+                "Manufacturing & Gigafactories",
+                "Recycling & Circular Economy"
+            ],
+            help="Lithium/cobalt mining, battery plants, recycling, second-life"
         )
 
     # Combine all choices into one list
-    all_selected_topics = tech_choices + policy_choices + industry_choices
+    all_selected_topics = tech_choices + policy_choices + supply_choices
 
     submitted = st.form_submit_button("Subscribe for Free")
 
@@ -96,3 +151,21 @@ with st.form("subscribe_form"):
             st.warning("⚠️ Please enter your email.")
         elif not all_selected_topics:
             st.warning("⚠️ Please select at least one topic.")
+
+# --- DONATION SECTION ---
+st.divider()
+st.subheader("☕ Support Battery Scout")
+st.write("Enjoying daily battery industry updates? Help keep this service free!")
+
+col1, col2, col3 = st.columns(3)
+with col1:
+    if st.button("☕ Buy Me a Coffee"):
+        st.info("🚧 Payment integration coming soon! Thank you for your interest.")
+with col2:
+    if st.button("💝 One-Time Donation"):
+        st.info("🚧 Payment integration coming soon! Thank you for your interest.")
+with col3:
+    if st.button("🌟 Become a Sponsor"):
+        st.info("🚧 Sponsorship opportunities coming soon!")
+
+st.caption("All donations help cover AI and infrastructure costs to keep Battery Scout running.")
