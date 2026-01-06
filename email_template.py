@@ -44,13 +44,12 @@ def get_email_header():
     """
 
 
-def get_topic_section_header(topic_name, article_count):
+def get_topic_section_header(topic_name):
     """
     Generate topic section header
 
     Args:
         topic_name: Name of the topic
-        article_count: Number of articles in this section
 
     Returns: HTML string
     """
@@ -59,11 +58,8 @@ def get_topic_section_header(topic_name, article_count):
         <tr>
             <td>
                 <h2 style="color: #2d3748; margin: 0; font-size: 18px; font-weight: 600;">
-                    🔋 {topic_name}
+                    {topic_name}
                 </h2>
-                <span style="background: #667eea; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-left: 8px;">
-                    {article_count} {' update' if article_count == 1 else ' updates'}
-                </span>
             </td>
         </tr>
     </table>

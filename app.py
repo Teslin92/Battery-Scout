@@ -92,6 +92,17 @@ if "unsubscribe" in query_params:
 st.title("🔋 Battery Scout")
 st.write("Get daily AI-curated email with the latest battery tech, policy & supply chain news.")
 
+# --- MIGRATION NOTICE ---
+st.info("""
+📢 **Important Update for Existing Subscribers**
+
+We've streamlined our categories from 16 to 10 comprehensive topics to reduce duplicate articles and improve relevance.
+
+**If you're already subscribed**, your old categories still work, but we recommend re-subscribing with the new categories below for a better experience.
+
+New subscribers: Welcome! Just select your interests below.
+""")
+
 with st.form("subscribe_form"):
     email = st.text_input("Your Email Address", placeholder="name@company.com")
 

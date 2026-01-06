@@ -261,7 +261,7 @@ def send_email():
 
                         # Add topic section header before first article
                         if topic_article_count == 0:
-                            email_body_html += email_template.get_topic_section_header(simple_topic.title(), "?")
+                            email_body_html += email_template.get_topic_section_header(simple_topic.title())
 
                         # Add article card
                         email_body_html += email_template.get_article_card(
