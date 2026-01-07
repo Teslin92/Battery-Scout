@@ -109,16 +109,21 @@ def ai_summarize_article(title, snippet="", is_chinese=False):
         snippet: Article snippet/description
         is_chinese: Whether article is in Chinese
 
-    Returns: 1-sentence summary or original title if AI fails
+    Returns: 1-sentence summary, empty string if no value to add, or original title if AI fails
     """
     global ai_call_count
 
     if not gemini_key:
-        return title
+        return ""
+
+    # Skip AI if snippet is too short (likely won't add value)
+    if not is_chinese and len(snippet.strip()) < 50:
+        print(f"   ⏭️  Skipping AI (snippet too short): {len(snippet)} chars")
+        return ""
 
     if ai_call_count >= MAX_AI_CALLS_PER_RUN:
-        print(f"⚠️  AI call limit reached ({MAX_AI_CALLS_PER_RUN}). Using original title.")
-        return title
+        print(f"⚠️  AI call limit reached ({MAX_AI_CALLS_PER_RUN}).")
+        return ""
 
     try:
         # Rate limiting delay
@@ -129,32 +134,34 @@ def ai_summarize_article(title, snippet="", is_chinese=False):
 
         if is_chinese:
             prompt = f"""
-            Translate and summarize this Chinese battery industry news.
+            Translate and summarize this Chinese battery industry news in ONE clear sentence.
 
             Title: {title}
             Snippet: {snippet}
 
-            Task: Write ONE sentence that explains the KEY BUSINESS IMPACT or TECHNICAL BREAKTHROUGH. What's the actual news? Who's doing what and why does it matter?
+            Instructions:
+            - Start with "🇨🇳 China Update:"
+            - Focus on WHO is doing WHAT and WHY it matters
+            - Include specific details (numbers, locations, companies)
+            - Make it informative, not just a translation
 
-            Start with "🇨🇳 China Update:" then explain the substance (e.g., "Company X is building a $500M plant to produce..." or "New regulation requires...").
-            Do NOT just translate the title. Extract the real story.
+            Example: "🇨🇳 China Update: CATL is building a $2B sodium-ion battery plant in Sichuan to target the budget EV market with 160 Wh/kg cells by 2025"
             """
         else:
             prompt = f"""
-            Summarize this battery industry news in ONE sentence that goes BEYOND the headline.
+            Analyze this battery industry article and provide a ONE-sentence insight.
 
             Title: {title}
             Snippet: {snippet}
 
-            Task: Extract the KEY INSIGHT that's NOT obvious from the title alone. Focus on:
-            - Specific numbers, investments, or technical specs
-            - Business implications or competitive dynamics
-            - Why this matters to the industry
+            Instructions:
+            - Extract KEY FACTS not in the title (numbers, specs, implications)
+            - Focus on business impact or technical details
+            - Be specific and informative
+            - If the snippet adds NO new information beyond the title, respond with exactly: "SKIP"
 
-            Bad example: "Company announces new battery technology" (too vague, repeats title)
-            Good example: "The new solid-state design promises 500+ mile range and targets 2027 production at $100/kWh cost parity with lithium-ion"
-
-            If the snippet doesn't add meaningful detail beyond the title, write "Details not available" instead of restating the headline.
+            Good: "The plant will produce 50 GWh annually using LFP chemistry, targeting the commercial vehicle market with 2025 production start"
+            Bad: "Company announces battery technology partnership" (too vague)
             """
 
         response = client.models.generate_content(
@@ -163,14 +170,17 @@ def ai_summarize_article(title, snippet="", is_chinese=False):
         )
         summary = response.text.strip()
 
-        print(f"   🤖 AI Summary ({ai_call_count}/{MAX_AI_CALLS_PER_RUN}): {summary[:50]}...")
+        # Skip if AI determines no value
+        if summary == "SKIP" or "Details not available" in summary:
+            print(f"   ⏭️  AI determined no additional value")
+            return ""
+
+        print(f"   🤖 AI Summary ({ai_call_count}/{MAX_AI_CALLS_PER_RUN}): {summary[:60]}...")
         return summary
 
     except Exception as e:
         print(f"⚠️  AI Error: {e}")
-        if is_chinese:
-            return f"🇨🇳 {title}"
-        return title
+        return ""
 
 def send_email():
     if not email_sender or not email_password:
