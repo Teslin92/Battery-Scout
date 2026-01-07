@@ -130,7 +130,7 @@ st.markdown("""
 # Hero Section
 st.markdown("""
 <div class="hero-section">
-    <div class="hero-title">🔋 Never Miss a Battery Breakthrough</div>
+    <div class="hero-title">Your Global Battery Intelligence Service</div>
     <div class="hero-subtitle">AI-curated and translated global battery news delivered to your inbox</div>
 </div>
 """, unsafe_allow_html=True)
