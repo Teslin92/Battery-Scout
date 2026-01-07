@@ -94,76 +94,182 @@ if "unsubscribe" in query_params:
     st.stop()
 
 # --- NORMAL SUBSCRIPTION PAGE ---
-st.title("Battery Scout")
-st.markdown("### Stay ahead of the battery industry with AI-curated daily news")
-st.write("Get personalized updates on technology breakthroughs, policy changes, and supply chain developments delivered to your inbox.")
+
+# Custom CSS for purple gradient theme
+st.markdown("""
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 40px 20px;
+        border-radius: 10px;
+        text-align: center;
+        color: white;
+        margin-bottom: 30px;
+    }
+    .hero-title {
+        font-size: 48px;
+        font-weight: 700;
+        margin-bottom: 16px;
+    }
+    .hero-subtitle {
+        font-size: 22px;
+        margin-bottom: 20px;
+        opacity: 0.95;
+    }
+    .trust-badge {
+        display: inline-block;
+        background: rgba(255, 255, 255, 0.2);
+        padding: 8px 16px;
+        border-radius: 20px;
+        margin: 5px;
+        font-size: 14px;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+# Hero Section
+st.markdown("""
+<div class="hero-section">
+    <div class="hero-title">🔋 Never Miss a Battery Breakthrough</div>
+    <div class="hero-subtitle">AI-curated news from across the global battery industry, delivered to your inbox</div>
+    <div>
+        <span class="trust-badge">✓ 100% Free Forever</span>
+        <span class="trust-badge">✓ No Credit Card</span>
+        <span class="trust-badge">✓ Unsubscribe Anytime</span>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+# How It Works Section
+st.markdown("## How Battery Scout Works")
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.markdown("### 1️⃣ Choose Topics")
+    st.write("Select from 10 curated categories covering tech, policy, and supply chain")
+with col2:
+    st.markdown("### 2️⃣ Set Frequency")
+    st.write("Get updates daily or weekly—whatever fits your schedule")
+with col3:
+    st.markdown("### 3️⃣ Stay Informed")
+    st.write("Receive AI-summarized articles from trusted sources worldwide")
+
+st.divider()
+
+# Sample Email Preview
+st.markdown("## 📬 What You'll Receive")
+st.markdown("*Here's a preview of what Battery Scout emails look like:*")
+
+with st.expander("👁️ View Sample Email", expanded=False):
+    st.markdown("""
+    **Subject:** ⚡ Daily Update: Next-Gen Batteries, US Policy & Incentives + More
+
+    ---
+
+    **🕵🏻‍♂️ The Battery Scout Brief 🔋**
+    *Your daily dose of battery industry intelligence*
+    January 6, 2026
+
+    ---
+
+    ### Next-Gen Batteries
+
+    **QuantumScape announces breakthrough in solid-state battery production**
+    *🤖 AI Summary: QuantumScape achieved 95% yield in their pilot production line using a new ceramic separator process, targeting 10 GWh annual capacity by 2027 for automotive applications.*
+    Source: Bloomberg · Jan 6, 2026
+    [Read article →]
+
+    **CATL unveils sodium-ion battery with 200 Wh/kg energy density**
+    *🇨🇳 China Update: CATL's third-generation sodium-ion battery reaches 200 Wh/kg, targeting budget EVs and energy storage with commercial production starting Q3 2026 at their Ningde facility.*
+    Source: Reuters · Jan 6, 2026
+    [Read article →]
+
+    ---
+
+    ### US Policy & Incentives
+
+    **DOE announces $2B in battery manufacturing grants**
+    *🤖 AI Summary: The Department of Energy allocated $2 billion across 15 projects to build domestic battery manufacturing capacity, prioritizing LFP and solid-state technologies with expected job creation of 8,000 positions.*
+    Source: U.S. Department of Energy · Jan 6, 2026
+    [Read article →]
+
+    ---
+
+    *📧 New Here? [Subscribe for Free →]*
+    *☕ Enjoying Battery Scout? [Buy Me a Coffee →]*
+    """)
+
+st.divider()
+
+# Subscription Form
+st.markdown("## 🚀 Get Started - It's Free!")
 
 with st.form("subscribe_form"):
-    email = st.text_input("Email Address", placeholder="your.email@company.com")
+    # Email input prominently at top
+    email = st.text_input("📧 Email Address", placeholder="your.email@company.com")
 
     # Email frequency selection
-    st.write("### Email Frequency")
     frequency = st.radio(
-        "How often would you like to receive updates?",
+        "⏰ How often would you like updates?",
         ["Daily", "Weekly"],
         horizontal=True,
         help="Daily: Get updates every day. Weekly: Get a digest every Monday."
     )
 
-    st.write("### Choose Your Topics")
-    st.caption("Select one or more areas you'd like to track")
+    # Topics in expander to reduce cognitive load
+    with st.expander("📂 Choose Your Topics (Select 1 or more)", expanded=True):
+        st.caption("Pick the areas you want to track. You can change these anytime.")
 
-    # Create three columns for organized layout
-    col1, col2, col3 = st.columns(3)
+        # Create three columns for organized layout
+        col1, col2, col3 = st.columns(3)
 
-    # Battery Technologies
-    with col1:
-        st.markdown("**Battery Technologies**")
-        tech_choices = st.multiselect(
-            "Technology",
-            [
-                "Next-Gen Batteries",
-                "Advanced Materials",
-                "Energy Storage Systems",
-                "Battery Safety & Performance"
-            ],
-            label_visibility="collapsed"
-        )
-        st.caption("Solid state, sodium-ion, anodes/cathodes, grid storage")
+        # Battery Technologies
+        with col1:
+            st.markdown("**⚡ Battery Technologies**")
+            tech_choices = st.multiselect(
+                "Technology",
+                [
+                    "Next-Gen Batteries",
+                    "Advanced Materials",
+                    "Energy Storage Systems",
+                    "Battery Safety & Performance"
+                ],
+                label_visibility="collapsed"
+            )
+            st.caption("Solid state, sodium-ion, anodes/cathodes, grid storage")
 
-    # Policy & Markets
-    with col2:
-        st.markdown("**Policy & Markets**")
-        policy_choices = st.multiselect(
-            "Policy",
-            [
-                "US Policy & Incentives",
-                "EU Regulations",
-                "China Industry & Trade"
-            ],
-            label_visibility="collapsed"
-        )
-        st.caption("IRA, tax credits, regulations, trade policy")
+        # Policy & Markets
+        with col2:
+            st.markdown("**🏛️ Policy & Markets**")
+            policy_choices = st.multiselect(
+                "Policy",
+                [
+                    "US Policy & Incentives",
+                    "EU Regulations",
+                    "China Industry & Trade"
+                ],
+                label_visibility="collapsed"
+            )
+            st.caption("IRA, tax credits, regulations, trade policy")
 
-    # Supply Chain & Sustainability
-    with col3:
-        st.markdown("**Supply Chain & Sustainability**")
-        supply_choices = st.multiselect(
-            "Supply Chain",
-            [
-                "Critical Minerals & Mining",
-                "Manufacturing & Gigafactories",
-                "Recycling & Circular Economy"
-            ],
-            label_visibility="collapsed"
-        )
-        st.caption("Mining, manufacturing, recycling, circularity")
+        # Supply Chain & Sustainability
+        with col3:
+            st.markdown("**♻️ Supply Chain & Sustainability**")
+            supply_choices = st.multiselect(
+                "Supply Chain",
+                [
+                    "Critical Minerals & Mining",
+                    "Manufacturing & Gigafactories",
+                    "Recycling & Circular Economy"
+                ],
+                label_visibility="collapsed"
+            )
+            st.caption("Mining, manufacturing, recycling, circularity")
 
     # Combine all choices into one list
     all_selected_topics = tech_choices + policy_choices + supply_choices
 
     st.write("")  # Spacing
-    submitted = st.form_submit_button("Subscribe for Free", type="primary", use_container_width=True)
+    submitted = st.form_submit_button("🚀 Start My Free Subscription", type="primary", use_container_width=True)
 
     if submitted:
         if email and "@" in email and all_selected_topics:
@@ -179,36 +285,48 @@ with st.form("subscribe_form"):
         elif not all_selected_topics:
             st.warning("Please select at least one topic.")
 
-# --- FEATURES SECTION ---
+# --- WHY BATTERY SCOUT SECTION ---
 st.divider()
+st.markdown("## Why Battery Scout?")
 
 col1, col2, col3 = st.columns(3)
 with col1:
-    st.markdown("**AI-Powered Summaries**")
+    st.markdown("### 🤖 AI-Powered Summaries")
     st.write("Every article includes a concise AI-generated summary so you can quickly identify what matters most.")
 with col2:
-    st.markdown("**Global Coverage**")
+    st.markdown("### 🌍 Global Coverage")
     st.write("Track developments from the US, EU, and China with bilingual news aggregation and translation.")
 with col3:
-    st.markdown("**Zero Spam**")
-    st.write("Personalized daily digest delivered to your inbox. Unsubscribe anytime with one click.")
+    st.markdown("### ⚡ Zero Spam")
+    st.write("Personalized digest delivered to your inbox. Unsubscribe anytime with one click.")
 
-# --- DONATION SECTION ---
+# --- WHO SHOULD SUBSCRIBE ---
 st.divider()
-st.subheader("Support Battery Scout")
-st.write("Help keep this service free and ad-free by supporting our infrastructure and AI costs.")
+st.markdown("## 👥 Who Uses Battery Scout?")
 
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 with col1:
-    if st.button("Buy Me a Coffee"):
-        st.info("Payment integration coming soon. Thank you for your interest!")
+    st.markdown("**🔬 Researchers**")
+    st.write("Stay current on breakthroughs")
 with col2:
-    if st.button("One-Time Donation"):
-        st.info("Payment integration coming soon. Thank you for your interest!")
+    st.markdown("**💼 Investors**")
+    st.write("Track market trends")
 with col3:
-    if st.button("Become a Sponsor"):
-        st.info("Sponsorship opportunities coming soon!")
+    st.markdown("**🏭 Engineers**")
+    st.write("Monitor tech advances")
+with col4:
+    st.markdown("**📊 Analysts**")
+    st.write("Follow policy changes")
 
 # --- FOOTER ---
 st.divider()
-st.caption("Battery Scout aggregates and curates publicly available news from Google News RSS feeds. © 2026 Battery Scout. All rights reserved.")
+
+# Support section in footer (compact)
+col1, col2 = st.columns([2, 1])
+with col1:
+    st.caption("Battery Scout aggregates and curates publicly available news from Google News RSS feeds.")
+    st.caption("© 2026 Battery Scout. All rights reserved.")
+with col2:
+    st.markdown("**☕ Support Us**")
+    st.markdown("[Buy Me a Coffee →](https://buymeacoffee.com/batteryscout)")
+    st.caption("Help keep this free!")
