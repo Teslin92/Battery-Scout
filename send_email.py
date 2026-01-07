@@ -37,42 +37,121 @@ AI_CALL_DELAY = 6.5  # 6.5 seconds between calls (gemini-2.0-flash-exp: 10 reque
 ai_call_count = 0
 MAX_AI_CALLS_PER_RUN = 50  # Reduced limit to stay well under quota
 
-# --- HYBRID MAPPING (English Topic -> Chinese Search Term) ---
-CHINESE_MAPPING = {
+# --- MULTI-LANGUAGE MAPPING (English Topic -> Non-English Search Terms) ---
+# Key battery industry countries: China, Germany, Japan, South Korea, Hungary, Sweden, France, Spain
+MULTILANGUAGE_MAPPING = {
     # NEW 10-CATEGORY STRUCTURE
     # 🔋 Battery Technologies
-    "Next-Gen Batteries": "固态电池 OR 钠离子电池 OR 下一代电池",
-    "Advanced Materials": "硅负极 OR 锂金属负极 OR 磷酸铁锂 OR LMFP",
-    "Energy Storage Systems": "储能电站 OR 工商业储能 OR 全钒液流电池",
-    "Battery Safety & Performance": "电池 热失控 安全 OR 电池测试",
+    "Next-Gen Batteries": {
+        "zh-CN": "固态电池 OR 钠离子电池 OR 下一代电池",
+        "de": "Festkörperbatterie OR Natrium-Ionen-Batterie OR Feststoffbatterie",
+        "ja": "全固体電池 OR ナトリウムイオン電池",
+        "ko": "전고체 배터리 OR 나트륨 이온 배터리",
+        "hu": "szilárdtest akkumulátor OR nátrium-ion akkumulátor",
+        "sv": "faststatusbatteri OR natriumjonbatteri",
+        "fr": "batterie solide OR batterie sodium-ion",
+        "es": "batería de estado sólido OR batería de ión sodio"
+    },
+    "Advanced Materials": {
+        "zh-CN": "硅负极 OR 锂金属负极 OR 磷酸铁锂 OR LMFP",
+        "de": "Silizium-Anode OR Lithium-Metall-Anode OR LFP Batterie",
+        "ja": "シリコン負極 OR リチウム金属負極 OR LFP電池",
+        "ko": "실리콘 음극 OR 리튬 금속 음극",
+        "hu": "szilícium anód OR lítium-fém anód",
+        "sv": "kiselaluminium anod OR litiummetall anod",
+        "fr": "anode silicium OR anode lithium métal OR LFP",
+        "es": "ánodo de silicio OR ánodo de litio metálico"
+    },
+    "Energy Storage Systems": {
+        "zh-CN": "储能电站 OR 工商业储能 OR 全钒液流电池",
+        "de": "Energiespeicher OR Batteriespeicher OR Vanadium-Redox-Flow-Batterie",
+        "ja": "蓄電システム OR バナジウムレドックスフロー電池",
+        "ko": "에너지 저장 시스템 OR 바나듐 레독스 플로우 배터리",
+        "hu": "energiatároló rendszer OR vanádium-redox áramlásos akkumulátor",
+        "sv": "energilagring OR vanadium-redox-flödesbatteri",
+        "fr": "stockage énergie OR batterie flux redox vanadium",
+        "es": "almacenamiento energía OR batería de flujo redox de vanadio"
+    },
+    "Battery Safety & Performance": {
+        "zh-CN": "电池 热失控 安全 OR 电池测试",
+        "de": "Batterie Sicherheit OR thermisches Durchgehen OR Batterietest",
+        "ja": "電池 安全性 OR 熱暴走",
+        "ko": "배터리 안전 OR 열폭주",
+        "hu": "akkumulátor biztonság OR hőrobbanás",
+        "sv": "batterisäkerhet OR termisk rusning",
+        "fr": "sécurité batterie OR emballement thermique",
+        "es": "seguridad batería OR fuga térmica"
+    },
 
     # 🏛️ Policy & Markets
-    "US Policy & Incentives": "IRA法案 电池 OR 通胀削减法案 电池 OR 美国 电池 补贴",
-    "EU Regulations": "电池护照 欧盟 OR 欧盟电池法规 OR CBAM 电池",
-    "China Industry & Trade": "电池 出口管制 商务部 OR 动力电池 产业政策",
+    "US Policy & Incentives": {
+        "zh-CN": "IRA法案 电池 OR 通胀削减法案 电池 OR 美国 电池 补贴",
+        "de": "IRA Gesetz Batterie OR USA Batterieförderung",
+        "ja": "IRA法 バッテリー OR 米国 電池 補助金",
+        "ko": "IRA법 배터리 OR 미국 배터리 보조금",
+        "hu": "IRA törvény akkumulátor OR USA akkumulátor támogatás",
+        "sv": "IRA lag batteri OR USA batteristöd",
+        "fr": "loi IRA batterie OR subventions batteries USA",
+        "es": "ley IRA batería OR subsidios baterías EEUU"
+    },
+    "EU Regulations": {
+        "zh-CN": "电池护照 欧盟 OR 欧盟电池法规 OR CBAM 电池",
+        "de": "Batteriepass OR EU-Batterieverordnung OR CBAM Batterie",
+        "ja": "バッテリーパスポート OR EU電池規制",
+        "ko": "배터리 여권 OR EU 배터리 규정",
+        "hu": "akkumulátor útlevél OR EU akkumulátor szabályozás",
+        "sv": "batteripass OR EU batterireglering",
+        "fr": "passeport batterie OR réglementation UE batteries",
+        "es": "pasaporte batería OR regulación UE baterías"
+    },
+    "China Industry & Trade": {
+        "zh-CN": "电池 出口管制 商务部 OR 动力电池 产业政策",
+        "de": "China Batterie Exportkontrolle OR chinesische Batterieindustrie",
+        "ja": "中国 電池 輸出規制 OR 中国 電池産業",
+        "ko": "중국 배터리 수출 통제 OR 중국 배터리 산업",
+        "hu": "Kína akkumulátor exportellenőrzés",
+        "sv": "Kina batteri exportkontroll",
+        "fr": "Chine contrôle export batterie OR industrie batterie chinoise",
+        "es": "China control exportación batería OR industria batería china"
+    },
 
     # ♻️ Supply Chain & Sustainability
-    "Critical Minerals & Mining": "锂矿 开采 OR 关键矿产 电池 OR 钴矿 镍矿",
-    "Manufacturing & Gigafactories": "动力电池 投产 OR 电池工厂 OR 电动汽车 供应链",
-    "Recycling & Circular Economy": "动力电池回收 OR 电池循环利用 OR 黑粉",
+    "Critical Minerals & Mining": {
+        "zh-CN": "锂矿 开采 OR 关键矿产 电池 OR 钴矿 镍矿",
+        "de": "Lithiumabbau OR kritische Mineralien Batterie OR Kobalt Nickel",
+        "ja": "リチウム採掘 OR 重要鉱物 電池 OR コバルト ニッケル",
+        "ko": "리튬 채굴 OR 핵심 광물 배터리 OR 코발트 니켈",
+        "hu": "lítium bányászat OR kritikus ásványok akkumulátor",
+        "sv": "litiumutvinning OR kritiska mineraler batteri",
+        "fr": "extraction lithium OR minéraux critiques batterie OR cobalt nickel",
+        "es": "extracción litio OR minerales críticos batería OR cobalto níquel"
+    },
+    "Manufacturing & Gigafactories": {
+        "zh-CN": "动力电池 投产 OR 电池工厂 OR 电动汽车 供应链",
+        "de": "Gigafactory OR Batteriefabrik OR Elektroauto Lieferkette",
+        "ja": "ギガファクトリー OR 電池工場 OR 電気自動車 サプライチェーン",
+        "ko": "기가팩토리 OR 배터리 공장 OR 전기차 공급망",
+        "hu": "gigagyár OR akkumulátorgyár",
+        "sv": "gigafabrik OR batterifabrik",
+        "fr": "gigafactory OR usine batterie OR chaîne approvisionnement véhicule électrique",
+        "es": "gigafábrica OR fábrica baterías OR cadena suministro vehículo eléctrico"
+    },
+    "Recycling & Circular Economy": {
+        "zh-CN": "动力电池回收 OR 电池循环利用 OR 黑粉",
+        "de": "Batterierecycling OR Kreislaufwirtschaft Batterie OR Schwarzmasse",
+        "ja": "電池リサイクル OR 循環型経済 OR ブラックマス",
+        "ko": "배터리 재활용 OR 순환경제 OR 블랙매스",
+        "hu": "akkumulátor újrahasznosítás OR körforgásos gazdaság",
+        "sv": "batteriåtervinning OR cirkulär ekonomi",
+        "fr": "recyclage batterie OR économie circulaire OR masse noire",
+        "es": "reciclaje batería OR economía circular OR masa negra"
+    },
 
     # LEGACY SUPPORT - Keep old categories for existing subscribers
-    "Solid State Batteries": "固态电池",
-    "Sodium-Ion": "钠离子电池",
-    "Silicon Anode": "硅负极 电池",
-    "LFP Battery": "磷酸铁锂 电池",
-    "Lithium Metal Anode": "锂金属负极",
-    "Vanadium Redox Flow": "全钒液流电池",
-    "Inflation Reduction Act": "IRA法案 电池 OR 通胀削减法案 电池",
-    "Battery Passport Regulation": "电池护照 欧盟",
-    "China Battery Supply Chain & Policy": "电池 出口管制 商务部",
-    "Critical Minerals & Mining": "锂矿 开采 OR 关键矿产 电池",
-    "Geopolitics & Tariffs": "电池 关税 欧盟 OR 301条款 电池",
-    "Thermal Runaway & Safety": "电池 热失控 安全",
-    "Gigafactory Construction": "动力电池 投产",
-    "Grid Storage (BESS)": "储能电站 OR 工商业储能",
-    "Electric Vehicle Supply Chain": "电动汽车 供应链",
-    "Battery Recycling": "动力电池回收 OR 电池循环利用",
+    "Solid State Batteries": {"zh-CN": "固态电池", "de": "Festkörperbatterie", "ja": "全固体電池"},
+    "Sodium-Ion": {"zh-CN": "钠离子电池", "de": "Natrium-Ionen-Batterie", "ja": "ナトリウムイオン電池"},
+    "Silicon Anode": {"zh-CN": "硅负极 电池", "de": "Silizium-Anode", "ja": "シリコン負極"},
+    "LFP Battery": {"zh-CN": "磷酸铁锂 电池", "de": "LFP Batterie", "ja": "LFP電池"},
 }
 
 def get_subscribers_from_sheet():
@@ -100,24 +179,26 @@ def generate_unsubscribe_token(email):
     email_encoded = base64.urlsafe_b64encode(email.encode()).decode()
     return f"{email_encoded}.{token}"
 
-def ai_summarize_article(title, snippet="", is_chinese=False):
+def ai_summarize_article(title, snippet="", is_translated=False, flag="", lang_code="en"):
     """
     Universal AI summarizer for all articles using Gemini 2.5
 
     Args:
         title: Article title
         snippet: Article snippet/description
-        is_chinese: Whether article is in Chinese
+        is_translated: Whether article is from non-English source
+        flag: Flag emoji for the source country
+        lang_code: Language code (e.g., "zh", "de", "ja")
 
-    Returns: 1-sentence summary, empty string if no value to add, or original title if AI fails
+    Returns: 1-sentence summary with flag prefix for translated content
     """
     global ai_call_count
 
     if not gemini_key:
         return ""
 
-    # Skip AI if snippet is too short (likely won't add value)
-    if not is_chinese and len(snippet.strip()) < 50:
+    # Skip AI if snippet is too short (likely won't add value) for English articles
+    if not is_translated and len(snippet.strip()) < 50:
         print(f"   ⏭️  Skipping AI (snippet too short): {len(snippet)} chars")
         return ""
 
@@ -132,20 +213,33 @@ def ai_summarize_article(title, snippet="", is_chinese=False):
 
         ai_call_count += 1
 
-        if is_chinese:
+        if is_translated:
+            # Language names for better prompts
+            lang_names = {
+                "zh": "Chinese",
+                "de": "German",
+                "ja": "Japanese",
+                "ko": "Korean",
+                "hu": "Hungarian",
+                "sv": "Swedish",
+                "fr": "French",
+                "es": "Spanish"
+            }
+            lang_name = lang_names.get(lang_code, "foreign language")
+
             prompt = f"""
-            Translate and summarize this Chinese battery industry news in ONE clear sentence.
+            Translate and summarize this {lang_name} battery industry news in ONE clear sentence.
 
             Title: {title}
             Snippet: {snippet}
 
             Instructions:
-            - Start with "🇨🇳 China Update:"
+            - Start with "{flag} {lang_name} Update:"
             - Focus on WHO is doing WHAT and WHY it matters
             - Include specific details (numbers, locations, companies)
             - Make it informative, not just a translation
 
-            Example: "🇨🇳 China Update: CATL is building a $2B sodium-ion battery plant in Sichuan to target the budget EV market with 160 Wh/kg cells by 2025"
+            Example: "{flag} {lang_name} Update: CATL is building a $2B sodium-ion battery plant in Sichuan to target the budget EV market with 160 Wh/kg cells by 2025"
             """
         else:
             prompt = f"""
@@ -236,30 +330,62 @@ def send_email():
             seen_urls = set()
             seen_titles = set()
 
+            # Language config: code, region, flag emoji
+            LANGUAGES = [
+                ("en", "US", "🇺🇸"),
+                ("zh-CN", "CN", "🇨🇳"),
+                ("de", "DE", "🇩🇪"),
+                ("ja", "JP", "🇯🇵"),
+                ("ko", "KR", "🇰🇷"),
+                ("hu", "HU", "🇭🇺"),
+                ("sv", "SE", "🇸🇪"),
+                ("fr", "FR", "🇫🇷"),
+                ("es", "ES", "🇪🇸")
+            ]
+
             for topic in topic_list:
                 if not topic: continue
-                
-                # 1. SETUP SEARCHES (English + Optional Chinese)
+
+                # 1. SETUP SEARCHES (English + Multiple Languages)
                 searches = []
-                
-                # English Search
+
                 simple_topic = topic.replace('(', '').replace(')', '').split(' OR ')[0].replace('"', '')
+
+                # Always add English search
                 eng_query = simple_topic if "battery" in simple_topic.lower() else f"{simple_topic} battery"
-                searches.append({"lang": "en", "term": simple_topic, "query": eng_query, "region": "US"})
-                
-                # Chinese Search (Hybrid Mode)
-                if topic in CHINESE_MAPPING:
-                    cn_query = CHINESE_MAPPING[topic]
-                    searches.append({"lang": "cn", "term": simple_topic, "query": cn_query, "region": "CN"})
+                searches.append({
+                    "lang": "en",
+                    "lang_code": "en-US",
+                    "term": simple_topic,
+                    "query": eng_query,
+                    "region": "US",
+                    "flag": "🇺🇸",
+                    "is_translated": False
+                })
+
+                # Add non-English searches if topic has translations
+                if topic in MULTILANGUAGE_MAPPING and isinstance(MULTILANGUAGE_MAPPING[topic], dict):
+                    for lang_code, translated_query in MULTILANGUAGE_MAPPING[topic].items():
+                        # Find matching language config
+                        lang_info = next((l for l in LANGUAGES if l[0] == lang_code), None)
+                        if lang_info:
+                            searches.append({
+                                "lang": lang_code.split('-')[0],  # "zh" from "zh-CN"
+                                "lang_code": lang_code,
+                                "term": simple_topic,
+                                "query": translated_query,
+                                "region": lang_info[1],
+                                "flag": lang_info[2],
+                                "is_translated": True
+                            })
 
                 topic_header_added = False
                 topic_article_count = 0
 
                 for search in searches:
                     safe_query = urllib.parse.quote(search["query"])
-                    # Switch region based on language
-                    gl = "CN" if search["lang"] == "cn" else "US"
-                    hl = "zh-CN" if search["lang"] == "cn" else "en-US"
+                    gl = search["region"]
+                    hl = search["lang_code"]
 
                     rss_url = f"https://news.google.com/rss/search?q={safe_query}+when:1d&hl={hl}&gl={gl}&ceid={gl}:{hl}"
                     feed = feedparser.parse(rss_url)
@@ -267,7 +393,7 @@ def send_email():
                     article_count = 0
 
                     for entry in feed.entries:
-                        if article_count >= 3: break # Max 3 articles per language
+                        if article_count >= 2: break  # Max 2 articles per language (more languages now)
                         if not is_article_new(entry.published): continue
 
                         # --- DUPLICATE CHECKER ---
@@ -285,11 +411,11 @@ def send_email():
                             topic_header_added = True
 
                         # PROCESS ARTICLE WITH AI
-                        is_chinese = search["lang"] == "cn"
+                        is_translated = search["is_translated"]
                         snippet = entry.summary if hasattr(entry, 'summary') else ""
 
-                        # Get AI summary for ALL articles
-                        ai_summary = ai_summarize_article(entry.title, snippet, is_chinese)
+                        # Get AI summary for translated articles (non-English)
+                        ai_summary = ai_summarize_article(entry.title, snippet, is_translated, search["flag"], search["lang"])
 
                         # Extract source from feed
                         source = "Unknown"
@@ -307,7 +433,7 @@ def send_email():
                             date=entry.published,
                             source=source,
                             summary=ai_summary,
-                            is_chinese=is_chinese
+                            is_chinese=is_translated  # True for any non-English article
                         )
 
                         news_found_count += 1
