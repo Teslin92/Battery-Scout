@@ -19,13 +19,14 @@ def get_sheet():
     client = gspread.authorize(creds)
     return client.open(SHEET_NAME).sheet1
 
-def save_subscriber(email, topics):
+def save_subscriber(email, topics, frequency="Daily"):
     """Appends the user to the Google Sheet"""
     try:
         sheet = get_sheet()
         # Convert list ['Lithium', 'Cobalt'] -> string 'Lithium|Cobalt'
         topic_string = "|".join(topics)
-        sheet.append_row([email, topic_string])
+        # Sheet structure: Email | Topics | Frequency
+        sheet.append_row([email, topic_string, frequency])
         return True
     except Exception as e:
         st.error(f"Error saving to database: {e}")
@@ -100,6 +101,15 @@ st.write("Get personalized updates on technology breakthroughs, policy changes, 
 with st.form("subscribe_form"):
     email = st.text_input("Email Address", placeholder="your.email@company.com")
 
+    # Email frequency selection
+    st.write("### Email Frequency")
+    frequency = st.radio(
+        "How often would you like to receive updates?",
+        ["Daily", "Weekly"],
+        horizontal=True,
+        help="Daily: Get updates every day. Weekly: Get a digest every Monday."
+    )
+
     st.write("### Choose Your Topics")
     st.caption("Select one or more areas you'd like to track")
 
@@ -158,9 +168,12 @@ with st.form("subscribe_form"):
     if submitted:
         if email and "@" in email and all_selected_topics:
             with st.spinner("Saving your preferences..."):
-                success = save_subscriber(email, all_selected_topics)
+                success = save_subscriber(email, all_selected_topics, frequency)
                 if success:
-                    st.success(f"Success! You're subscribed to {len(all_selected_topics)} topic(s). Check your inbox tomorrow for your first update.")
+                    if frequency == "Daily":
+                        st.success(f"Success! You're subscribed to {len(all_selected_topics)} topic(s). Check your inbox tomorrow for your first daily update.")
+                    else:
+                        st.success(f"Success! You're subscribed to {len(all_selected_topics)} topic(s). Check your inbox next Monday for your first weekly digest.")
         elif not email:
             st.warning("Please enter your email address.")
         elif not all_selected_topics:

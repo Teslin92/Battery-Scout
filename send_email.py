@@ -206,14 +206,24 @@ def send_email():
     with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
         smtp.login(email_sender, email_password)
 
+        # Check if today is Monday (0 = Monday in Python's weekday())
+        is_monday = datetime.now().weekday() == 0
+
         for row in subscribers:
             if len(row) < 2: continue
             user_email = row[0]
             raw_topics = row[1]
-            
+            # Get frequency preference (default to "Daily" for backward compatibility)
+            frequency = row[2] if len(row) > 2 else "Daily"
+
             if not user_email or "@" not in user_email: continue
-            
-            print(f"🔎 Scouting news for: {user_email}")
+
+            # Skip weekly subscribers on non-Monday days
+            if frequency == "Weekly" and not is_monday:
+                print(f"⏭️  Skipping {user_email} (weekly subscriber, not Monday)")
+                continue
+
+            print(f"🔎 Scouting news for: {user_email} ({frequency})")
 
             # Use new email template
             email_body_html = email_template.get_email_header()
@@ -311,17 +321,17 @@ def send_email():
             if news_found_count > 0:
                 # Generate unsubscribe token and add footer
                 unsubscribe_token = generate_unsubscribe_token(user_email)
-                # Update with your actual Streamlit app URL
-                unsubscribe_url = f"https://your-app.streamlit.app/?unsubscribe={unsubscribe_token}"
+                unsubscribe_url = f"https://battery-scout.streamlit.app/?unsubscribe={unsubscribe_token}"
                 email_body_html += email_template.get_email_footer(unsubscribe_url)
 
                 # Enhanced subject line
+                frequency_prefix = "📬 Weekly Digest" if frequency == "Weekly" else "⚡ Daily Update"
                 if len(topics_with_articles) == 1:
-                    subject = f"⚡ Battery Scout: {topics_with_articles[0]} Updates"
+                    subject = f"{frequency_prefix}: {topics_with_articles[0]}"
                 elif len(topics_with_articles) <= 3:
-                    subject = f"⚡ Battery Scout: {', '.join(topics_with_articles[:2])} + More"
+                    subject = f"{frequency_prefix}: {', '.join(topics_with_articles[:2])} + More"
                 else:
-                    subject = f"⚡ Battery Scout: {news_found_count} Updates Across {len(topics_with_articles)} Topics"
+                    subject = f"{frequency_prefix}: {news_found_count} Updates Across {len(topics_with_articles)} Topics"
 
                 msg = MIMEMultipart()
                 msg['From'] = f"Battery Scout <{email_sender}>"

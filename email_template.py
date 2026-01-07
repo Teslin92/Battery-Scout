@@ -131,12 +131,13 @@ def get_article_card(title, link, date, source="Unknown", summary="", is_chinese
     """
 
 
-def get_email_footer(unsubscribe_url=""):
+def get_email_footer(unsubscribe_url="", signup_url="https://battery-scout.streamlit.app"):
     """
-    Generate email footer with branding and unsubscribe
+    Generate email footer with branding, signup CTA, donation, and unsubscribe
 
     Args:
         unsubscribe_url: URL for unsubscribing
+        signup_url: URL for new subscribers to sign up
 
     Returns: HTML string
     """
@@ -149,9 +150,47 @@ def get_email_footer(unsubscribe_url=""):
         """
 
     return f"""
-        <!-- Footer -->
+        <!-- New Subscriber CTA -->
         <div style="height: 2px; background: linear-gradient(90deg, #667eea 0%, #764ba2 100%); margin-top: 30px;"></div>
 
+        <table width="100%" cellpadding="0" cellspacing="0" style="background: #f8f9ff; padding: 24px 20px; border: 1px solid #e0e7ff;">
+            <tr>
+                <td style="text-align: center;">
+                    <p style="color: #667eea; font-size: 13px; margin: 0 0 6px 0; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+                        📧 New Here?
+                    </p>
+                    <p style="color: #4a5568; font-size: 14px; margin: 0 0 12px 0; line-height: 1.4;">
+                        Know someone interested in battery industry news?<br>
+                        They can get personalized daily or weekly updates.
+                    </p>
+                    <a href="{signup_url}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; margin-bottom: 12px;">
+                        Subscribe for Free
+                    </a>
+                    <p style="color: #718096; font-size: 11px; margin: 0;">
+                        Choose your topics • Daily or weekly emails • Unsubscribe anytime
+                    </p>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Support CTA -->
+        <table width="100%" cellpadding="0" cellspacing="0" style="background: #fffbf0; padding: 20px; border: 1px solid #ffeaa7;">
+            <tr>
+                <td style="text-align: center;">
+                    <p style="color: #d4a574; font-size: 13px; margin: 0 0 6px 0; font-weight: 600;">
+                        ☕ Enjoying Battery Scout?
+                    </p>
+                    <p style="color: #4a5568; font-size: 13px; margin: 0 0 12px 0; line-height: 1.4;">
+                        Help keep this service free by supporting our infrastructure and AI costs.
+                    </p>
+                    <a href="https://buymeacoffee.com/batteryscout" style="display: inline-block; background: #FFDD00; color: #000000; padding: 10px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 13px; border: 2px solid #000000;">
+                        ☕ Buy Me a Coffee
+                    </a>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Footer -->
         <table width="100%" cellpadding="0" cellspacing="0" style="background: #f7fafc; padding: 30px 20px;">
             <tr>
                 <td style="text-align: center;">
@@ -159,7 +198,7 @@ def get_email_footer(unsubscribe_url=""):
                         ⚡ Powered by Battery Scout
                     </p>
                     <p style="color: #718096; font-size: 12px; margin: 0; line-height: 1.6;">
-                        AI-curated battery industry news, delivered daily.<br>
+                        AI-curated battery industry news, delivered to your inbox.<br>
                         Tracking technology, policy, and supply chain developments worldwide.
                     </p>
 
