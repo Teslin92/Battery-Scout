@@ -33,9 +33,9 @@ if gemini_key:
     client = genai.Client(api_key=gemini_key)
 
 # --- AI RATE LIMITING ---
-AI_CALL_DELAY = 0.5  # 500ms between calls to respect rate limits
+AI_CALL_DELAY = 6.5  # 6.5 seconds between calls (gemini-2.0-flash-exp: 10 requests/min max)
 ai_call_count = 0
-MAX_AI_CALLS_PER_RUN = 200  # Safety limit
+MAX_AI_CALLS_PER_RUN = 50  # Reduced limit to stay well under quota
 
 # --- HYBRID MAPPING (English Topic -> Chinese Search Term) ---
 CHINESE_MAPPING = {
@@ -179,7 +179,14 @@ def ai_summarize_article(title, snippet="", is_chinese=False):
         return summary
 
     except Exception as e:
-        print(f"⚠️  AI Error: {e}")
+        error_str = str(e)
+        # Check if it's a rate limit error
+        if "429" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+            print(f"⚠️  Rate limit hit. Skipping remaining AI calls for this run.")
+            # Set count to max to stop further API calls
+            ai_call_count = MAX_AI_CALLS_PER_RUN
+        else:
+            print(f"⚠️  AI Error: {e}")
         return ""
 
 def send_email():
