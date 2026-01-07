@@ -102,16 +102,6 @@ def get_article_card(title, link, date, source="Unknown", summary="", is_chinese
     <table width="100%" cellpadding="0" cellspacing="0" style="background: #ffffff; padding: 16px 20px; border-left: 4px solid #667eea; margin-top: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <tr>
             <td>
-                <!-- Source Badge -->
-                <div style="margin-bottom: 8px;">
-                    <span style="background: {source_badge_color}; color: white; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase;">
-                        {source_label}
-                    </span>
-                    <span style="color: #a0aec0; font-size: 12px; margin-left: 10px;">
-                        {display_date}
-                    </span>
-                </div>
-
                 <!-- Title -->
                 <div style="margin-bottom: 8px;">
                     <a href="{link}" style="color: #2d3748; font-size: 16px; font-weight: 600; text-decoration: none; line-height: 1.4;">
@@ -121,10 +111,17 @@ def get_article_card(title, link, date, source="Unknown", summary="", is_chinese
 
                 <!-- AI Summary -->
                 {f'''
-                <div style="color: #718096; font-size: 14px; font-style: italic; line-height: 1.5; margin-top: 8px; padding-left: 12px; border-left: 3px solid #e2e8f0;">
+                <div style="color: #4a5568; font-size: 14px; line-height: 1.5; margin-top: 8px; padding-left: 12px; border-left: 3px solid #667eea;">
                     {summary}
                 </div>
                 ''' if summary else ''}
+
+                <!-- Metadata (Source & Date) -->
+                <div style="margin-top: 8px;">
+                    <span style="color: #a0aec0; font-size: 11px;">
+                        {source_label if is_chinese else source} · {display_date}
+                    </span>
+                </div>
 
                 <!-- Chinese Source Link -->
                 {chinese_note}

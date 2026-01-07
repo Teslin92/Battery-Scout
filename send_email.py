@@ -129,22 +129,32 @@ def ai_summarize_article(title, snippet="", is_chinese=False):
 
         if is_chinese:
             prompt = f"""
-            Translate this Chinese battery news into English.
+            Translate and summarize this Chinese battery industry news.
+
             Title: {title}
             Snippet: {snippet}
 
-            Task: Provide a 1-sentence summary of the core business or technical update.
-            Start with "🇨🇳 China Update:". Do not just translate the title.
+            Task: Write ONE sentence that explains the KEY BUSINESS IMPACT or TECHNICAL BREAKTHROUGH. What's the actual news? Who's doing what and why does it matter?
+
+            Start with "🇨🇳 China Update:" then explain the substance (e.g., "Company X is building a $500M plant to produce..." or "New regulation requires...").
+            Do NOT just translate the title. Extract the real story.
             """
         else:
             prompt = f"""
-            Summarize this battery industry news in 1 sentence.
-            Focus on the core business or technical development.
+            Summarize this battery industry news in ONE sentence that goes BEYOND the headline.
 
             Title: {title}
             Snippet: {snippet}
 
-            Task: Write a concise 1-sentence summary that captures the key insight.
+            Task: Extract the KEY INSIGHT that's NOT obvious from the title alone. Focus on:
+            - Specific numbers, investments, or technical specs
+            - Business implications or competitive dynamics
+            - Why this matters to the industry
+
+            Bad example: "Company announces new battery technology" (too vague, repeats title)
+            Good example: "The new solid-state design promises 500+ mile range and targets 2027 production at $100/kWh cost parity with lithium-ion"
+
+            If the snippet doesn't add meaningful detail beyond the title, write "Details not available" instead of restating the headline.
             """
 
         response = client.models.generate_content(
@@ -261,7 +271,7 @@ def send_email():
 
                         # Add topic section header before first article
                         if topic_article_count == 0:
-                            email_body_html += email_template.get_topic_section_header(simple_topic.title())
+                            email_body_html += email_template.get_topic_section_header(topic)
 
                         # Add article card
                         email_body_html += email_template.get_article_card(
@@ -279,7 +289,7 @@ def send_email():
 
                 # Track topics that had articles for subject line
                 if topic_article_count > 0:
-                    topics_with_articles.append(simple_topic.title())
+                    topics_with_articles.append(topic)
 
             if news_found_count > 0:
                 # Generate unsubscribe token and add footer
