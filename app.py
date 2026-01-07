@@ -1,65 +1,20 @@
+"""
+Battery Scout - Streamlit Application
+UI layer for the Battery Scout subscription service.
+"""
+
 import streamlit as st
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-import pandas as pd
-import hashlib
-import base64
+from utils import (
+    save_subscriber,
+    verify_unsubscribe_token,
+    remove_subscriber,
+    validate_subscription,
+    TECH_TOPICS,
+    POLICY_TOPICS,
+    SUPPLY_TOPICS
+)
 
-# --- CONFIGURATION ---
-SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-# ⚠️ MAKE SURE THIS MATCHES YOUR GOOGLE SHEET NAME EXACTLY
-SHEET_NAME = "Battery Subscribers"
-
-# --- GOOGLE SHEETS CONNECTION ---
-def get_sheet():
-    """Connects to Google Sheets"""
-    # Create a credentials object from the Streamlit secrets
-    creds_dict = st.secrets["gcp_service_account"]
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, SCOPE)
-    client = gspread.authorize(creds)
-    return client.open(SHEET_NAME).sheet1
-
-def save_subscriber(email, topics, frequency="Daily"):
-    """Appends the user to the Google Sheet"""
-    try:
-        sheet = get_sheet()
-        # Convert list ['Lithium', 'Cobalt'] -> string 'Lithium|Cobalt'
-        topic_string = "|".join(topics)
-        # Sheet structure: Email | Topics | Frequency
-        sheet.append_row([email, topic_string, frequency])
-        return True
-    except Exception as e:
-        st.error(f"Error saving to database: {e}")
-        return False
-
-def verify_unsubscribe_token(token_string):
-    """Verify unsubscribe token and extract email"""
-    try:
-        email_encoded, token = token_string.split('.')
-        email = base64.urlsafe_b64decode(email_encoded).decode()
-        # Verify with same salt as send_email.py
-        secret_salt = st.secrets.get("unsubscribe_salt", "default_salt_change_me")
-        expected_token = hashlib.sha256(f"{email}{secret_salt}".encode()).hexdigest()[:16]
-        if token == expected_token:
-            return email
-    except Exception:
-        return None
-    return None
-
-def remove_subscriber(email):
-    """Remove subscriber from Google Sheet"""
-    try:
-        sheet = get_sheet()
-        cell = sheet.find(email)
-        if cell:
-            sheet.delete_rows(cell.row)
-            return True
-    except Exception as e:
-        st.error(f"Error removing subscriber: {e}")
-        return False
-    return False
-
-# --- MAIN APP LAYOUT ---
+# --- PAGE CONFIGURATION ---
 st.set_page_config(
     page_title="Battery Scout - Daily Battery Industry News",
     page_icon="⚡",
@@ -71,7 +26,7 @@ query_params = st.query_params
 if "unsubscribe" in query_params:
     st.title("Battery Scout - Unsubscribe")
     token = query_params["unsubscribe"]
-    email = verify_unsubscribe_token(token)
+    email = verify_unsubscribe_token(token, st.secrets)
 
     if email:
         st.write(f"### Confirm Unsubscribe")
@@ -81,11 +36,12 @@ if "unsubscribe" in query_params:
         col1, col2 = st.columns(2)
         with col1:
             if st.button("Yes, Unsubscribe", type="primary"):
-                if remove_subscriber(email):
+                success, error = remove_subscriber(email, st.secrets)
+                if success:
                     st.success("You've been successfully unsubscribed. Sorry to see you go!")
                     st.write("You will no longer receive Battery Scout emails.")
                 else:
-                    st.error("Could not find your email in our system. You may already be unsubscribed.")
+                    st.error(f"Could not find your email in our system. {error or 'You may already be unsubscribed.'}")
         with col2:
             if st.button("No, Keep Me Subscribed"):
                 st.info("Great! You'll continue receiving daily battery industry updates.")
@@ -226,12 +182,7 @@ with st.form("subscribe_form"):
             st.markdown("**⚡ Battery Technologies**")
             tech_choices = st.multiselect(
                 "Technology",
-                [
-                    "Next-Gen Batteries",
-                    "Advanced Materials",
-                    "Energy Storage Systems",
-                    "Battery Safety & Performance"
-                ],
+                TECH_TOPICS,
                 label_visibility="collapsed"
             )
             st.caption("Solid state, sodium-ion, anodes/cathodes, grid storage")
@@ -241,11 +192,7 @@ with st.form("subscribe_form"):
             st.markdown("**🏛️ Policy & Markets**")
             policy_choices = st.multiselect(
                 "Policy",
-                [
-                    "US Policy & Incentives",
-                    "EU Regulations",
-                    "China Industry & Trade"
-                ],
+                POLICY_TOPICS,
                 label_visibility="collapsed"
             )
             st.caption("IRA, tax credits, regulations, trade policy")
@@ -255,11 +202,7 @@ with st.form("subscribe_form"):
             st.markdown("**♻️ Supply Chain & Sustainability**")
             supply_choices = st.multiselect(
                 "Supply Chain",
-                [
-                    "Critical Minerals & Mining",
-                    "Manufacturing & Gigafactories",
-                    "Recycling & Circular Economy"
-                ],
+                SUPPLY_TOPICS,
                 label_visibility="collapsed"
             )
             st.caption("Mining, manufacturing, recycling, circularity")
@@ -271,18 +214,21 @@ with st.form("subscribe_form"):
     submitted = st.form_submit_button("🚀 Start My Free Subscription", type="primary", use_container_width=True)
 
     if submitted:
-        if email and "@" in email and all_selected_topics:
+        # Validate inputs
+        is_valid, error_message = validate_subscription(email, all_selected_topics)
+
+        if is_valid:
             with st.spinner("Saving your preferences..."):
-                success = save_subscriber(email, all_selected_topics, frequency)
+                success, error = save_subscriber(email, all_selected_topics, frequency, st.secrets)
                 if success:
                     if frequency == "Daily":
                         st.success(f"Success! You're subscribed to {len(all_selected_topics)} topic(s). Check your inbox tomorrow for your first daily update.")
                     else:
                         st.success(f"Success! You're subscribed to {len(all_selected_topics)} topic(s). Check your inbox next Monday for your first weekly digest.")
-        elif not email:
-            st.warning("Please enter your email address.")
-        elif not all_selected_topics:
-            st.warning("Please select at least one topic.")
+                else:
+                    st.error(error)
+        else:
+            st.warning(error_message)
 
 # --- WHY BATTERY SCOUT SECTION ---
 st.divider()

@@ -294,184 +294,200 @@ def send_email():
         print(f"Failed to read Sheet: {e}")
         return
 
-    subscribers = rows[1:] 
-    context = ssl.create_default_context()
-    
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
-        smtp.login(email_sender, email_password)
+    subscribers = rows[1:]
 
-        # Check if today is Monday (0 = Monday in Python's weekday())
-        is_monday = datetime.now().weekday() == 0
+    # Check if today is Monday (0 = Monday in Python's weekday())
+    is_monday = datetime.now().weekday() == 0
 
-        for row in subscribers:
-            if len(row) < 2: continue
-            user_email = row[0]
-            raw_topics = row[1]
-            # Get frequency preference (default to "Daily" for backward compatibility)
-            frequency = row[2] if len(row) > 2 else "Daily"
+    for row in subscribers:
+        if len(row) < 2: continue
+        user_email = row[0]
+        raw_topics = row[1]
+        # Get frequency preference (default to "Daily" for backward compatibility)
+        frequency = row[2] if len(row) > 2 else "Daily"
 
-            if not user_email or "@" not in user_email: continue
+        if not user_email or "@" not in user_email: continue
 
-            # Skip weekly subscribers on non-Monday days
-            if frequency == "Weekly" and not is_monday:
-                print(f"⏭️  Skipping {user_email} (weekly subscriber, not Monday)")
-                continue
+        # Skip weekly subscribers on non-Monday days
+        if frequency == "Weekly" and not is_monday:
+            print(f"⏭️  Skipping {user_email} (weekly subscriber, not Monday)")
+            continue
 
-            print(f"🔎 Scouting news for: {user_email} ({frequency})")
+        print(f"🔎 Scouting news for: {user_email} ({frequency})")
 
-            # Use new email template
-            email_body_html = email_template.get_email_header()
+        # Use new email template
+        email_body_html = email_template.get_email_header()
 
-            news_found_count = 0
-            topic_list = raw_topics.split("|")
-            topics_with_articles = []  # Track which topics have articles for subject line
+        news_found_count = 0
+        topic_list = raw_topics.split("|")
+        topics_with_articles = []  # Track which topics have articles for subject line
 
-            # TRACKING SETS (Reset per user)
-            seen_urls = set()
-            seen_titles = set()
+        # TRACKING SETS (Reset per user)
+        seen_urls = set()
+        seen_titles = set()
 
-            # Language config: code, region, flag emoji
-            LANGUAGES = [
-                ("en", "US", "🇺🇸"),
-                ("zh-CN", "CN", "🇨🇳"),
-                ("de", "DE", "🇩🇪"),
-                ("ja", "JP", "🇯🇵"),
-                ("ko", "KR", "🇰🇷"),
-                ("hu", "HU", "🇭🇺"),
-                ("sv", "SE", "🇸🇪"),
-                ("fr", "FR", "🇫🇷"),
-                ("es", "ES", "🇪🇸")
-            ]
+        # Language config: code, region, flag emoji
+        LANGUAGES = [
+            ("en", "US", "🇺🇸"),
+            ("zh-CN", "CN", "🇨🇳"),
+            ("de", "DE", "🇩🇪"),
+            ("ja", "JP", "🇯🇵"),
+            ("ko", "KR", "🇰🇷"),
+            ("hu", "HU", "🇭🇺"),
+            ("sv", "SE", "🇸🇪"),
+            ("fr", "FR", "🇫🇷"),
+            ("es", "ES", "🇪🇸")
+        ]
 
-            for topic in topic_list:
-                if not topic: continue
+        for topic in topic_list:
+            if not topic: continue
 
-                # 1. SETUP SEARCHES (English + Multiple Languages)
-                searches = []
+            # 1. SETUP SEARCHES (English + Multiple Languages)
+            searches = []
 
-                simple_topic = topic.replace('(', '').replace(')', '').split(' OR ')[0].replace('"', '')
+            simple_topic = topic.replace('(', '').replace(')', '').split(' OR ')[0].replace('"', '')
 
-                # Always add English search
-                eng_query = simple_topic if "battery" in simple_topic.lower() else f"{simple_topic} battery"
-                searches.append({
-                    "lang": "en",
-                    "lang_code": "en-US",
-                    "term": simple_topic,
-                    "query": eng_query,
-                    "region": "US",
-                    "flag": "🇺🇸",
-                    "is_translated": False
-                })
+            # Always add English search
+            eng_query = simple_topic if "battery" in simple_topic.lower() else f"{simple_topic} battery"
+            searches.append({
+                "lang": "en",
+                "lang_code": "en-US",
+                "term": simple_topic,
+                "query": eng_query,
+                "region": "US",
+                "flag": "🇺🇸",
+                "is_translated": False
+            })
 
-                # Add non-English searches if topic has translations
-                if topic in MULTILANGUAGE_MAPPING and isinstance(MULTILANGUAGE_MAPPING[topic], dict):
-                    for lang_code, translated_query in MULTILANGUAGE_MAPPING[topic].items():
-                        # Find matching language config
-                        lang_info = next((l for l in LANGUAGES if l[0] == lang_code), None)
-                        if lang_info:
-                            searches.append({
-                                "lang": lang_code.split('-')[0],  # "zh" from "zh-CN"
-                                "lang_code": lang_code,
-                                "term": simple_topic,
-                                "query": translated_query,
-                                "region": lang_info[1],
-                                "flag": lang_info[2],
-                                "is_translated": True
-                            })
+            # Add non-English searches if topic has translations
+            if topic in MULTILANGUAGE_MAPPING and isinstance(MULTILANGUAGE_MAPPING[topic], dict):
+                for lang_code, translated_query in MULTILANGUAGE_MAPPING[topic].items():
+                    # Find matching language config
+                    lang_info = next((l for l in LANGUAGES if l[0] == lang_code), None)
+                    if lang_info:
+                        searches.append({
+                            "lang": lang_code.split('-')[0],  # "zh" from "zh-CN"
+                            "lang_code": lang_code,
+                            "term": simple_topic,
+                            "query": translated_query,
+                            "region": lang_info[1],
+                            "flag": lang_info[2],
+                            "is_translated": True
+                        })
 
-                topic_header_added = False
-                topic_article_count = 0
+            topic_header_added = False
+            topic_article_count = 0
 
-                for search in searches:
-                    safe_query = urllib.parse.quote(search["query"])
-                    gl = search["region"]
-                    hl = search["lang_code"]
+            for search in searches:
+                safe_query = urllib.parse.quote(search["query"])
+                gl = search["region"]
+                hl = search["lang_code"]
 
-                    rss_url = f"https://news.google.com/rss/search?q={safe_query}+when:1d&hl={hl}&gl={gl}&ceid={gl}:{hl}"
-                    feed = feedparser.parse(rss_url)
+                rss_url = f"https://news.google.com/rss/search?q={safe_query}+when:1d&hl={hl}&gl={gl}&ceid={gl}:{hl}"
+                feed = feedparser.parse(rss_url)
 
-                    article_count = 0
+                article_count = 0
 
-                    for entry in feed.entries:
-                        if article_count >= 2: break  # Max 2 articles per language (more languages now)
-                        if not is_article_new(entry.published): continue
+                for entry in feed.entries:
+                    if article_count >= 2: break  # Max 2 articles per language (more languages now)
+                    if not is_article_new(entry.published): continue
 
-                        # --- DUPLICATE CHECKER ---
-                        clean_title = entry.title.split(" - ")[0].strip().lower()
-                        if entry.link in seen_urls or clean_title in seen_titles:
-                            continue
+                    # --- DUPLICATE CHECKER ---
+                    clean_title = entry.title.split(" - ")[0].strip().lower()
+                    if entry.link in seen_urls or clean_title in seen_titles:
+                        continue
 
-                        seen_urls.add(entry.link)
-                        seen_titles.add(clean_title)
-                        # -----------------------------------
+                    seen_urls.add(entry.link)
+                    seen_titles.add(clean_title)
+                    # -----------------------------------
 
-                        # Add topic header if first article for this topic
-                        if not topic_header_added:
-                            # We'll add it after we know there are articles
-                            topic_header_added = True
+                    # Add topic header if first article for this topic
+                    if not topic_header_added:
+                        # We'll add it after we know there are articles
+                        topic_header_added = True
 
-                        # PROCESS ARTICLE WITH AI
-                        is_translated = search["is_translated"]
-                        snippet = entry.summary if hasattr(entry, 'summary') else ""
+                    # PROCESS ARTICLE WITH AI
+                    is_translated = search["is_translated"]
+                    snippet = entry.summary if hasattr(entry, 'summary') else ""
 
-                        # Get AI summary for translated articles (non-English)
-                        ai_summary = ai_summarize_article(entry.title, snippet, is_translated, search["flag"], search["lang"])
+                    # Get AI summary for translated articles (non-English)
+                    ai_summary = ai_summarize_article(entry.title, snippet, is_translated, search["flag"], search["lang"])
 
-                        # Extract source from feed
-                        source = "Unknown"
-                        if hasattr(entry, 'source') and 'title' in entry.source:
-                            source = entry.source['title']
+                    # Extract source from feed
+                    source = "Unknown"
+                    if hasattr(entry, 'source') and 'title' in entry.source:
+                        source = entry.source['title']
 
-                        # Add topic section header before first article
-                        if topic_article_count == 0:
-                            email_body_html += email_template.get_topic_section_header(topic)
+                    # Add topic section header before first article
+                    if topic_article_count == 0:
+                        email_body_html += email_template.get_topic_section_header(topic)
 
-                        # Add article card
-                        email_body_html += email_template.get_article_card(
-                            title=entry.title,
-                            link=entry.link,
-                            date=entry.published,
-                            source=source,
-                            summary=ai_summary,
-                            is_chinese=is_translated  # True for any non-English article
-                        )
+                    # Add article card
+                    email_body_html += email_template.get_article_card(
+                        title=entry.title,
+                        link=entry.link,
+                        date=entry.published,
+                        source=source,
+                        summary=ai_summary,
+                        is_chinese=is_translated  # True for any non-English article
+                    )
 
-                        news_found_count += 1
-                        article_count += 1
-                        topic_article_count += 1
+                    news_found_count += 1
+                    article_count += 1
+                    topic_article_count += 1
 
-                # Track topics that had articles for subject line
-                if topic_article_count > 0:
-                    topics_with_articles.append(topic)
+            # Track topics that had articles for subject line
+            if topic_article_count > 0:
+                topics_with_articles.append(topic)
 
-            if news_found_count > 0:
-                # Generate unsubscribe token and add footer
-                unsubscribe_token = generate_unsubscribe_token(user_email)
-                unsubscribe_url = f"https://battery-scout.streamlit.app/?unsubscribe={unsubscribe_token}"
-                email_body_html += email_template.get_email_footer(unsubscribe_url)
+        print(f"📊 Total news found: {news_found_count}")
 
-                # Enhanced subject line
-                frequency_prefix = "📬 Weekly Digest" if frequency == "Weekly" else "⚡ Daily Update"
-                if len(topics_with_articles) == 1:
-                    subject = f"{frequency_prefix}: {topics_with_articles[0]}"
-                elif len(topics_with_articles) <= 3:
-                    subject = f"{frequency_prefix}: {', '.join(topics_with_articles[:2])} + More"
-                else:
-                    subject = f"{frequency_prefix}: {news_found_count} Updates Across {len(topics_with_articles)} Topics"
+        if news_found_count > 0:
+            print(f"✉️ Preparing email for {user_email} with {news_found_count} articles...")
+            # Generate unsubscribe token and add footer
+            unsubscribe_token = generate_unsubscribe_token(user_email)
+            unsubscribe_url = f"https://battery-scout.streamlit.app/?unsubscribe={unsubscribe_token}"
+            email_body_html += email_template.get_email_footer(unsubscribe_url)
 
-                msg = MIMEMultipart()
-                msg['From'] = f"Battery Scout <{email_sender}>"
-                msg['To'] = user_email
-                msg['Subject'] = subject
-                msg.attach(MIMEText(email_body_html, 'html'))
-                
-                try:
-                    smtp.sendmail(email_sender, user_email, msg.as_string())
-                    print(f"✅ Sent email to {user_email}")
-                except Exception as e:
-                    print(f"❌ Failed to send: {e}")
+            # Enhanced subject line
+            frequency_prefix = "📬 Weekly Digest" if frequency == "Weekly" else "⚡ Daily Update"
+            if len(topics_with_articles) == 1:
+                subject = f"{frequency_prefix}: {topics_with_articles[0]}"
+            elif len(topics_with_articles) <= 3:
+                subject = f"{frequency_prefix}: {', '.join(topics_with_articles[:2])} + More"
             else:
-                print(f"No news for {user_email}")
+                subject = f"{frequency_prefix}: {news_found_count} Updates Across {len(topics_with_articles)} Topics"
+
+            msg = MIMEMultipart()
+            msg['From'] = f"Battery Scout <{email_sender}>"
+            msg['To'] = user_email
+            msg['Subject'] = subject
+            msg.attach(MIMEText(email_body_html, 'html'))
+
+            # Create fresh SMTP connection for each email to avoid timeout
+            print(f"📧 Attempting to send email to {user_email}...")
+            try:
+                context = ssl.create_default_context()
+                print("  → Creating SMTP connection...")
+                with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=context) as smtp:
+                    print("  → Logging in...")
+                    smtp.login(email_sender, email_password)
+                    print("  → Sending message...")
+                    smtp.sendmail(email_sender, user_email, msg.as_string())
+                print(f"✅ Sent email to {user_email}")
+            except smtplib.SMTPAuthenticationError as e:
+                print(f"❌ Authentication failed: {e}")
+                print(f"   Check EMAIL_ADDRESS and EMAIL_PASSWORD environment variables")
+            except smtplib.SMTPException as e:
+                print(f"❌ SMTP error: {e}")
+                import traceback
+                traceback.print_exc()
+            except Exception as e:
+                print(f"❌ Failed to send: {e}")
+                import traceback
+                traceback.print_exc()
+        else:
+            print(f"No news for {user_email}")
 
 if __name__ == "__main__":
     send_email()
