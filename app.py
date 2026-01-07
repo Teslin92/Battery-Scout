@@ -131,12 +131,7 @@ st.markdown("""
 st.markdown("""
 <div class="hero-section">
     <div class="hero-title">🔋 Never Miss a Battery Breakthrough</div>
-    <div class="hero-subtitle">AI-curated news from across the global battery industry, delivered to your inbox</div>
-    <div>
-        <span class="trust-badge">✓ 100% Free Forever</span>
-        <span class="trust-badge">✓ No Credit Card</span>
-        <span class="trust-badge">✓ Unsubscribe Anytime</span>
-    </div>
+    <div class="hero-subtitle">AI-curated and translated global battery news delivered to your inbox</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -160,43 +155,47 @@ st.markdown("## 📬 What You'll Receive")
 st.markdown("*Here's a preview of what Battery Scout emails look like:*")
 
 with st.expander("👁️ View Sample Email", expanded=False):
+    st.markdown("**Subject Line:** ⚡ Daily Update: Next-Gen Batteries, US Policy & Incentives + More")
+    st.divider()
+
+    # Email header styled box
     st.markdown("""
-    **Subject:** ⚡ Daily Update: Next-Gen Batteries, US Policy & Incentives + More
+    <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 8px; color: white; text-align: center; margin-bottom: 20px;'>
+        <h2 style='margin: 0; color: white;'>🕵🏻‍♂️ The Battery Scout Brief 🔋</h2>
+        <p style='margin: 5px 0 0 0; opacity: 0.9;'>Your daily dose of battery industry intelligence</p>
+        <p style='margin: 5px 0 0 0; font-size: 12px; opacity: 0.8;'>January 6, 2026</p>
+    </div>
+    """, unsafe_allow_html=True)
 
-    ---
-
-    **🕵🏻‍♂️ The Battery Scout Brief 🔋**
-    *Your daily dose of battery industry intelligence*
-    January 6, 2026
-
-    ---
-
-    ### Next-Gen Batteries
-
+    # Topic section 1
+    st.markdown("### Next-Gen Batteries")
+    st.markdown("""
     **QuantumScape announces breakthrough in solid-state battery production**
-    *🤖 AI Summary: QuantumScape achieved 95% yield in their pilot production line using a new ceramic separator process, targeting 10 GWh annual capacity by 2027 for automotive applications.*
-    Source: Bloomberg · Jan 6, 2026
-    [Read article →]
+    *QuantumScape achieved 95% yield in their pilot production line using a new ceramic separator process, targeting 10 GWh annual capacity by 2027 for automotive applications.*
+    <small style='color: #888;'>Bloomberg · Jan 6, 2026</small>
+    """, unsafe_allow_html=True)
+    st.write("")
 
+    st.markdown("""
     **CATL unveils sodium-ion battery with 200 Wh/kg energy density**
     *🇨🇳 China Update: CATL's third-generation sodium-ion battery reaches 200 Wh/kg, targeting budget EVs and energy storage with commercial production starting Q3 2026 at their Ningde facility.*
-    Source: Reuters · Jan 6, 2026
-    [Read article →]
+    <small style='color: #888;'>Reuters · Jan 6, 2026</small>
+    """, unsafe_allow_html=True)
 
-    ---
+    st.divider()
 
-    ### US Policy & Incentives
-
+    # Topic section 2
+    st.markdown("### US Policy & Incentives")
+    st.markdown("""
     **DOE announces $2B in battery manufacturing grants**
-    *🤖 AI Summary: The Department of Energy allocated $2 billion across 15 projects to build domestic battery manufacturing capacity, prioritizing LFP and solid-state technologies with expected job creation of 8,000 positions.*
-    Source: U.S. Department of Energy · Jan 6, 2026
-    [Read article →]
+    *The Department of Energy allocated $2 billion across 15 projects to build domestic battery manufacturing capacity, prioritizing LFP and solid-state technologies with expected job creation of 8,000 positions.*
+    <small style='color: #888;'>U.S. Department of Energy · Jan 6, 2026</small>
+    """, unsafe_allow_html=True)
 
-    ---
+    st.divider()
 
-    *📧 New Here? [Subscribe for Free →]*
-    *☕ Enjoying Battery Scout? [Buy Me a Coffee →]*
-    """)
+    st.info("📧 **New Here?** Know someone interested in battery news? Forward this email!")
+    st.warning("☕ **Enjoying Battery Scout?** Support our free service with a coffee")
 
 st.divider()
 
