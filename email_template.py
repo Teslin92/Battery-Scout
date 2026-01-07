@@ -83,17 +83,13 @@ def get_article_card(title, link, date, source="Unknown", summary="", is_chinese
     # Clean up date (take first 16 chars if longer)
     display_date = date[:16] if len(date) > 16 else date
 
-    # Source badge color based on type
-    source_badge_color = "#667eea" if not is_chinese else "#e53e3e"
-    source_label = f"🇨🇳 {source}" if is_chinese else source
-
-    # Chinese article note
-    chinese_note = ""
-    if is_chinese:
-        chinese_note = f"""
+    # Translated article note (for any non-English article)
+    translated_note = ""
+    if is_chinese:  # is_chinese is used for ALL translated articles now
+        translated_note = f"""
         <div style="margin-top: 8px;">
             <a href='{link}' style="color: #718096; font-size: 12px; text-decoration: none;">
-                [View Original Chinese Source →]
+                [View Original Source →]
             </a>
         </div>
         """
@@ -119,12 +115,12 @@ def get_article_card(title, link, date, source="Unknown", summary="", is_chinese
                 <!-- Metadata (Source & Date) -->
                 <div style="margin-top: 8px;">
                     <span style="color: #a0aec0; font-size: 11px;">
-                        {source_label if is_chinese else source} · {display_date}
+                        {source} · {display_date}
                     </span>
                 </div>
 
-                <!-- Chinese Source Link -->
-                {chinese_note}
+                <!-- Translated Source Link -->
+                {translated_note}
             </td>
         </tr>
     </table>
