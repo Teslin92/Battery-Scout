@@ -418,13 +418,19 @@ def send_email():
                     if hasattr(entry, 'source') and 'title' in entry.source:
                         source = entry.source['title']
 
+                    # Clean title: Remove " - Source Name" suffix from Google News titles
+                    clean_title = entry.title
+                    if " - " in clean_title:
+                        # Google News format: "Article Title - Source Name"
+                        clean_title = clean_title.rsplit(" - ", 1)[0]
+
                     # Add topic section header before first article
                     if topic_article_count == 0:
                         email_body_html += email_template.get_topic_section_header(topic)
 
                     # Add article card
                     email_body_html += email_template.get_article_card(
-                        title=entry.title,
+                        title=clean_title,
                         link=entry.link,
                         date=entry.published,
                         source=source,
