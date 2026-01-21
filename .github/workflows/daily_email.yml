@@ -1,32 +1,40 @@
-name: Daily Email Sender
+name: Daily Newsletter
 
 on:
   schedule:
+    # Run at 14:00 UTC daily (9am EST / 6am PST)
     - cron: '0 14 * * *'
-  workflow_dispatch:
+  workflow_dispatch:  # Allow manual trigger
 
 jobs:
-  send-email:
+  send-newsletter:
     runs-on: ubuntu-latest
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
 
-      - name: Install libraries
-        run: pip install requests google-auth google-api-python-client feedparser python-dateutil google-genai
+      - name: Install dependencies
+        run: pip install -r backend/requirements.txt
 
-      - name: Run script
+      - name: Send newsletter emails
+        working-directory: backend
         env:
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
-          EMAIL_ADDRESS: ${{ secrets.EMAIL_ADDRESS }}
-          GCP_SERVICE_ACCOUNT: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          # Supabase credentials
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          # Gmail SMTP credentials
+          GMAIL_USER: ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          # Gemini AI
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          # Security
           UNSUBSCRIBE_SALT: ${{ secrets.UNSUBSCRIBE_SALT }}
         run: python send_email.py

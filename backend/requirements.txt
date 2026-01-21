@@ -1,0 +1,20 @@
+# Web framework (API backend)
+fastapi
+uvicorn[standard]
+python-multipart
+pydantic[email]
+
+# Supabase database client
+supabase>=2.0.0
+
+# RSS feed parsing
+feedparser
+
+# Google Gemini AI for summaries
+google-genai
+
+# Date/time handling
+python-dateutil
+
+# HTTP requests
+requests
