@@ -104,9 +104,7 @@ origins = [
     "http://localhost:8080",      # Alternative dev port
     "https://*.lovable.app",      # Lovable preview deployments
     "https://battery-scout.streamlit.app",  # Legacy Streamlit app
-    # Add your production domains:
-    # "https://battery-brief.com",
-    # "https://www.battery-brief.com",
+    "https://battery-scout-launchpad.vercel.app",  # Vercel production
 ]
 
 # Also allow any Lovable subdomain
@@ -115,7 +113,7 @@ LOVABLE_PATTERN = ".lovable.app"
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"https://.*\.lovable\.app",  # Match any Lovable subdomain
+    allow_origin_regex=r"https://.*\.(lovable\.app|vercel\.app)",  # Match Lovable and Vercel subdomains
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
