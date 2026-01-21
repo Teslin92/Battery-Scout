@@ -24,17 +24,20 @@ jobs:
       - name: Install dependencies
         run: pip install -r backend/requirements.txt
 
+      - name: Scrape news articles
+        working-directory: backend
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scrape_news.py
+
       - name: Send newsletter emails
         working-directory: backend
         env:
-          # Supabase credentials
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          # Gmail SMTP credentials
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          # Gemini AI
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          # Security
           UNSUBSCRIBE_SALT: ${{ secrets.UNSUBSCRIBE_SALT }}
         run: python send_email.py
