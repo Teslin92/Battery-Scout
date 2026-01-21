@@ -216,10 +216,12 @@ def ai_summarize_article(
             If REJECTED, respond with exactly: "SKIP"
 
             If ACCEPTED, provide a ONE-sentence summary:
+            - ASSUME the reader is a well-informed industry professional who knows major political figures, CEOs, and policymakers by name (e.g., don't say "someone named Carney" - just say "Carney" or "Mark Carney")
             - ALWAYS include the country/region involved (e.g., "in Germany", "Canada announced", "Chinese manufacturer")
             - Include specifics: company names, $ amounts, GWh capacity, % tariff rates
             - Focus on the business impact for battery industry professionals
             - Write concisely but with enough context to understand the news without clicking
+            - Write in a professional, direct tone - no hedging or unnecessary qualifiers
             """
 
         response = client.models.generate_content(
@@ -228,9 +230,14 @@ def ai_summarize_article(
         )
         summary = response.text.strip()
 
-        # Check for rejection
-        if summary in ("GENERIC", "SKIP") or "Details not available" in summary:
-            print(f"   ⏭️  AI filtered article")
+        # Check for rejection - catch exact matches and partial matches
+        summary_upper = summary.upper()
+        if (summary in ("GENERIC", "SKIP")
+            or "GENERIC" in summary_upper
+            or "SKIP" in summary_upper
+            or "NOT RELEVANT" in summary_upper
+            or "Details not available" in summary):
+            print(f"   ⏭️  AI filtered article: {summary[:50]}")
             return "", False
 
         # Clean up prefixes
