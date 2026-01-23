@@ -18,7 +18,7 @@ def get_email_header(signup_url="https://battery-scout.streamlit.app"):
         <table width="100%" cellpadding="0" cellspacing="0" style="background: #fafafa; padding: 12px 20px; border-bottom: 1px solid #eaeaea;">
             <tr>
                 <td style="text-align: center;">
-                    <a href="https://buymeacoffee.com/batteryscout" style="display: inline-block; background: #FFDD00; color: #000; padding: 6px 14px; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 12px; margin-right: 8px;">☕ Buy me a coffee</a>
+                    <a href="https://buymeacoffee.com/zmeseldzijv" style="display: inline-block; background: #FFDD00; color: #000; padding: 6px 14px; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 12px; margin-right: 8px;">☕ Buy me a coffee</a>
                     <a href="{signup_url}" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 6px 14px; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 12px;">📧 Share</a>
                 </td>
             </tr>
@@ -158,7 +158,7 @@ def get_email_footer(unsubscribe_url="", signup_url="https://battery-scout.strea
                     <p style="color: #555; font-size: 14px; margin: 0 0 16px 0;">
                         Enjoying Battery Scout?
                     </p>
-                    <a href="https://buymeacoffee.com/batteryscout" style="display: inline-block; background: #FFDD00; color: #000; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 13px; margin-right: 10px;">☕ Buy me a coffee</a>
+                    <a href="https://buymeacoffee.com/zmeseldzijv" style="display: inline-block; background: #FFDD00; color: #000; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 13px; margin-right: 10px;">☕ Buy me a coffee</a>
                     <a href="{signup_url}" style="display: inline-block; background: #1a1a1a; color: #fff; padding: 10px 20px; text-decoration: none; border-radius: 4px; font-weight: 600; font-size: 13px;">📧 Share</a>
                 </td>
             </tr>
