@@ -86,8 +86,12 @@ export function SignupForm() {
         (topicId) => topicIdToBackendCategory[topicId] || topicId
       );
 
-      // Use hardcoded Railway URL (like Lovable version) as fallback
-      const API_URL = import.meta.env.VITE_API_URL || 'https://battery-scout-production.up.railway.app';
+      // Use hardcoded Railway URL (like Lovable version) - always use production backend
+      // Only use env var if it's a valid production URL, otherwise use hardcoded
+      const envUrl = import.meta.env.VITE_API_URL;
+      const API_URL = (envUrl && envUrl.includes('railway.app')) 
+        ? envUrl 
+        : 'https://battery-scout-production.up.railway.app';
       
       console.log('Signup request to:', `${API_URL}/api/signup`);
       console.log('Payload:', { email: data.email, topics: backendTopics, frequency: data.frequency, regions: data.regions || [] });
