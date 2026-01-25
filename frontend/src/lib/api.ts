@@ -5,7 +5,7 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-// Log API URL in development
+// Only log in development (not production)
 if (import.meta.env.DEV) {
   console.log('API Base URL:', API_BASE_URL);
 }
@@ -74,7 +74,10 @@ export interface StatsResponse {
 export async function signup(data: SignupRequest): Promise<SignupResponse> {
   const url = `${API_BASE_URL}/api/signup`;
   
-  console.log('Signup request:', { url, data });
+  // Only log in development to avoid exposing sensitive data in production
+  if (import.meta.env.DEV) {
+    console.log('Signup request:', { url });
+  }
   
   try {
     const response = await fetch(url, {
@@ -85,8 +88,6 @@ export async function signup(data: SignupRequest): Promise<SignupResponse> {
       body: JSON.stringify(data),
     });
 
-    console.log('Signup response status:', response.status, response.statusText);
-
     if (!response.ok) {
       let errorData;
       try {
@@ -95,7 +96,10 @@ export async function signup(data: SignupRequest): Promise<SignupResponse> {
         errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
       }
       
-      console.error('Signup error:', errorData);
+      // Log errors in development only
+      if (import.meta.env.DEV) {
+        console.error('Signup error:', errorData);
+      }
       
       // Handle 404 specifically
       if (response.status === 404) {
@@ -106,7 +110,10 @@ export async function signup(data: SignupRequest): Promise<SignupResponse> {
     }
 
     const result = await response.json();
-    console.log('Signup success:', result);
+    // Only log success in development
+    if (import.meta.env.DEV) {
+      console.log('Signup success');
+    }
     return result;
   } catch (error) {
     console.error('Signup fetch error:', error);

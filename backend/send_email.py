@@ -11,6 +11,7 @@ import smtplib
 import ssl
 import hashlib
 import base64
+import html
 from datetime import datetime, timedelta, timezone
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -73,7 +74,12 @@ email_password = os.environ.get("EMAIL_PASSWORD") or os.environ.get("GMAIL_APP_P
 
 def generate_unsubscribe_token(email: str) -> str:
     """Create secure unsubscribe token."""
-    secret_salt = os.environ.get("UNSUBSCRIBE_SALT", "default_salt_change_me")
+    secret_salt = os.environ.get("UNSUBSCRIBE_SALT")
+    if not secret_salt:
+        raise ValueError(
+            "UNSUBSCRIBE_SALT environment variable is required. "
+            "Set it to a random secret string (e.g., generate with: openssl rand -hex 32)"
+        )
     token = hashlib.sha256(f"{email}{secret_salt}".encode()).hexdigest()[:16]
     email_encoded = base64.urlsafe_b64encode(email.encode()).decode()
     return f"{email_encoded}.{token}"
@@ -196,12 +202,17 @@ def send_email():
                 is_translated = article.get("is_translated", False)
                 flag = article.get("flag", "") if is_translated else ""
 
+                # Escape HTML to prevent XSS attacks from malicious RSS content
+                safe_title = html.escape(article.get("title", "Untitled"))
+                safe_summary = html.escape(article.get("summary", ""))
+                safe_source = html.escape(article.get("source_name", "Unknown"))
+                
                 email_body_html += email_template.get_article_card(
-                    title=article.get("title", "Untitled"),
+                    title=safe_title,
                     link=article.get("url", "#"),
                     date=display_date,
-                    source=article.get("source_name", "Unknown"),
-                    summary=article.get("summary", ""),
+                    source=safe_source,
+                    summary=safe_summary,
                     is_translated=is_translated,
                     flag=flag
                 )

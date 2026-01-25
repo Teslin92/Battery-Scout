@@ -86,59 +86,23 @@ export function SignupForm() {
         (topicId) => topicIdToBackendCategory[topicId] || topicId
       );
 
-      // Use hardcoded Railway URL (like Lovable version) - always use production backend
-      // Only use env var if it's a valid production URL, otherwise use hardcoded
-      const envUrl = import.meta.env.VITE_API_URL;
-      let API_URL = (envUrl && envUrl.includes('railway.app')) 
-        ? envUrl 
-        : 'https://battery-scout-production.up.railway.app';
-      
-      // Remove trailing slash if present to avoid double slashes
-      API_URL = API_URL.replace(/\/+$/, '');
-      
-      console.log('Signup request to:', `${API_URL}/api/signup`);
-      console.log('Payload:', { email: data.email, topics: backendTopics, frequency: data.frequency, regions: data.regions || [] });
-      
-      const response = await fetch(`${API_URL}/api/signup`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: data.email,
-          topics: backendTopics,
-          frequency: data.frequency,
-          regions: data.regions || [],
-        }),
+      // Use centralized API client instead of hardcoded URL
+      const result = await signup({
+        email: data.email,
+        topics: backendTopics,
+        frequency: data.frequency,
+        regions: data.regions || [],
       });
-
-      console.log('Response status:', response.status, response.statusText);
-
-      if (!response.ok) {
-        // Try to parse error response
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch {
-          // If not JSON, use status text
-          if (response.status === 404) {
-            throw new Error(`API endpoint not found (404). Check if backend is deployed at ${API_URL}`);
-          }
-          throw new Error(`Server error: ${response.status} ${response.statusText}`);
-        }
-        
-        setStatus("error");
-        setMessage(errorData.detail || errorData.message || `Error: ${response.status} ${response.statusText}`);
-        return;
-      }
-
-      const result = await response.json();
-      console.log('Success response:', result);
-
+      
+      // Old fetch code removed - using api.ts client now
+      // This ensures consistent error handling and respects VITE_API_URL env var
+      
       setStatus("success");
       setMessage(result.message || "You're subscribed! Check your inbox.");
       form.reset();
+      return;
     } catch (error) {
+      // Handle errors from api.ts client
       setStatus("error");
       const errorMessage = error instanceof Error ? error.message : "Something went wrong. Please try again.";
       
@@ -149,8 +113,10 @@ export function SignupForm() {
       } else {
         setMessage(errorMessage);
       }
+      return;
     }
   }
+
 
   if (status === "success") {
     return (

@@ -166,8 +166,16 @@ def generate_unsubscribe_token(email: str) -> str:
 
     Returns:
         Token in format 'base64_email.hash_token'
+    
+    Raises:
+        ValueError: If UNSUBSCRIBE_SALT environment variable is not set
     """
-    secret_salt = os.environ.get("UNSUBSCRIBE_SALT", "default_salt_change_me")
+    secret_salt = os.environ.get("UNSUBSCRIBE_SALT")
+    if not secret_salt:
+        raise ValueError(
+            "UNSUBSCRIBE_SALT environment variable is required. "
+            "Set it to a random secret string (e.g., generate with: openssl rand -hex 32)"
+        )
     token = hashlib.sha256(f"{email}{secret_salt}".encode()).hexdigest()[:16]
     email_encoded = base64.urlsafe_b64encode(email.encode()).decode()
     return f"{email_encoded}.{token}"
@@ -195,7 +203,9 @@ def verify_unsubscribe_token(
         if secrets and "unsubscribe_salt" in secrets:
             secret_salt = secrets["unsubscribe_salt"]
         else:
-            secret_salt = os.environ.get("UNSUBSCRIBE_SALT", "default_salt_change_me")
+            secret_salt = os.environ.get("UNSUBSCRIBE_SALT")
+            if not secret_salt:
+                return None  # Cannot verify without salt
 
         expected_token = hashlib.sha256(f"{email}{secret_salt}".encode()).hexdigest()[:16]
 

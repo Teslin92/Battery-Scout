@@ -267,8 +267,12 @@ async def get_sample_content():
                 for article in recent[:3]
             ]
             return ContentResponse(sample_articles=sample_articles)
-    except Exception:
-        pass  # Fall back to static content
+    except Exception as e:
+        # Log error instead of silently swallowing it
+        # This helps with debugging production issues
+        print(f"⚠️  Warning: Failed to fetch recent articles for sample content: {e}")
+        print(f"   Falling back to static content")
+        # Fall back to static content
 
     # Static fallback content
     sample_articles = [

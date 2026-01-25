@@ -13,11 +13,13 @@ const categoryColorMap: Record<string, string> = {
 };
 
 export const SampleNewsletterSection = () => {
-  const { data: contentResponse, isLoading } = useQuery({
+  const { data: contentResponse, isLoading, isError, error } = useQuery({
     queryKey: ["sample-content"],
     queryFn: async () => {
       return await getSampleContent();
     },
+    retry: 2, // Retry twice on failure
+    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
   });
 
   const articles = contentResponse?.sample_articles || [];
@@ -48,6 +50,13 @@ export const SampleNewsletterSection = () => {
                 <div className="h-4 bg-muted rounded w-2/3" />
               </div>
             ))}
+          </div>
+        ) : isError ? (
+          <div className="text-center text-muted-foreground py-12">
+            <p className="text-destructive mb-2">Unable to load sample articles.</p>
+            <p className="text-sm">
+              {error instanceof Error ? error.message : "Please try refreshing the page."}
+            </p>
           </div>
         ) : articles.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
