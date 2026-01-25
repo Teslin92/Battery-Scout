@@ -89,6 +89,9 @@ export function SignupForm() {
       // Use hardcoded Railway URL (like Lovable version) as fallback
       const API_URL = import.meta.env.VITE_API_URL || 'https://battery-scout-production.up.railway.app';
       
+      console.log('Signup request to:', `${API_URL}/api/signup`);
+      console.log('Payload:', { email: data.email, topics: backendTopics, frequency: data.frequency, regions: data.regions || [] });
+      
       const response = await fetch(`${API_URL}/api/signup`, {
         method: 'POST',
         headers: {
@@ -102,16 +105,32 @@ export function SignupForm() {
         }),
       });
 
-      const result = await response.json();
+      console.log('Response status:', response.status, response.statusText);
 
-      if (response.ok) {
-        setStatus("success");
-        setMessage(result.message || "You're subscribed! Check your inbox.");
-        form.reset();
-      } else {
+      if (!response.ok) {
+        // Try to parse error response
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch {
+          // If not JSON, use status text
+          if (response.status === 404) {
+            throw new Error(`API endpoint not found (404). Check if backend is deployed at ${API_URL}`);
+          }
+          throw new Error(`Server error: ${response.status} ${response.statusText}`);
+        }
+        
         setStatus("error");
-        setMessage(result.detail || result.message || "Something went wrong. Please try again.");
+        setMessage(errorData.detail || errorData.message || `Error: ${response.status} ${response.statusText}`);
+        return;
       }
+
+      const result = await response.json();
+      console.log('Success response:', result);
+
+      setStatus("success");
+      setMessage(result.message || "You're subscribed! Check your inbox.");
+      form.reset();
     } catch (error) {
       setStatus("error");
       const errorMessage = error instanceof Error ? error.message : "Something went wrong. Please try again.";
