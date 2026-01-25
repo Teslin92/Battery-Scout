@@ -2,7 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Battery Brief Design System - Deep Blue + Teal Energy Theme */
+/* Battery Scout Design System - Energy/Tech Newsletter Theme */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 @layer base {
   :root {
@@ -15,43 +17,42 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 217 91% 20%;
-    --primary-foreground: 210 40% 98%;
+    /* Electric Blue - Primary brand color */
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
+    /* Emerald Green - Secondary/success */
+    --secondary: 160 84% 39%;
+    --secondary-foreground: 0 0% 100%;
 
+    /* Light blue-gray for muted surfaces */
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
 
-    --accent: 174 72% 40%;
+    /* Accent - Amber/Energy */
+    --accent: 38 92% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 174 72% 40%;
+    --ring: 217 91% 60%;
 
     --radius: 0.75rem;
 
-    /* Custom Battery Brief tokens */
-    --hero-gradient-start: 217 91% 15%;
-    --hero-gradient-end: 217 91% 8%;
-    --teal: 174 72% 40%;
-    --teal-light: 174 72% 95%;
-    --navy: 217 91% 20%;
-    --navy-dark: 217 91% 8%;
+    /* Custom gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(200 100% 50%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(210 40% 98%) 0%, hsl(210 50% 95%) 100%);
+    --gradient-energy: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(160 84% 39%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 40% 98%) 100%);
 
-    /* Category colors */
-    --category-industry: 217 91% 50%;
-    --category-technology: 142 71% 45%;
-    --category-supply: 25 95% 53%;
-    --category-manufacturing: 262 83% 58%;
-    --category-policy: 346 77% 50%;
-    --category-recycling: 174 72% 40%;
-    --category-market: 45 93% 47%;
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(222 47% 11% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(222 47% 11% / 0.1), 0 2px 4px -2px hsl(222 47% 11% / 0.1);
+    --shadow-lg: 0 10px 15px -3px hsl(222 47% 11% / 0.1), 0 4px 6px -4px hsl(222 47% 11% / 0.1);
+    --shadow-glow: 0 0 40px hsl(217 91% 60% / 0.15);
 
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -64,33 +65,37 @@
   }
 
   .dark {
-    --background: 217 91% 8%;
+    --background: 222 47% 6%;
     --foreground: 210 40% 98%;
 
-    --card: 217 91% 12%;
+    --card: 222 47% 8%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 217 91% 12%;
+    --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 174 72% 50%;
-    --primary-foreground: 217 91% 8%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 32% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 160 84% 39%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 217 32% 17%;
+    --muted: 217 33% 17%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 174 72% 40%;
+    --accent: 38 92% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217 32% 17%;
-    --input: 217 32% 17%;
-    --ring: 174 72% 50%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 217 91% 60%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 50%) 0%, hsl(200 100% 40%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(222 47% 6%) 0%, hsl(222 47% 8%) 100%);
+    --gradient-energy: linear-gradient(135deg, hsl(217 91% 50%) 0%, hsl(160 84% 30%) 100%);
 
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
@@ -109,7 +114,8 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -118,22 +124,45 @@
 }
 
 @layer utilities {
-  .hero-gradient {
-    background: linear-gradient(135deg, hsl(var(--hero-gradient-start)) 0%, hsl(var(--hero-gradient-end)) 100%);
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .gradient-energy {
+    background: var(--gradient-energy);
+  }
+
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, hsl(var(--teal)) 0%, hsl(174 72% 55%) 100%);
+    background: var(--gradient-energy);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  .card-hover {
-    @apply transition-all duration-300 hover:shadow-lg hover:-translate-y-1;
+  .animate-pulse-glow {
+    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
-  .glow-teal {
-    box-shadow: 0 0 40px -10px hsl(var(--teal) / 0.4);
+  @keyframes pulse-glow {
+    0%, 100% {
+      opacity: 1;
+      box-shadow: var(--shadow-glow);
+    }
+    50% {
+      opacity: 0.8;
+      box-shadow: 0 0 60px hsl(217 91% 60% / 0.25);
+    }
   }
 }
