@@ -160,8 +160,11 @@ def send_email():
         print(f"   Categories: {', '.join(categories)}")
         print(f"   Regions: {', '.join(regions)}")
 
+        # Get frontend URL for email links
+        frontend_url = os.environ.get("FRONTEND_URL", "https://battery-scout-launchpad.vercel.app")
+
         # Build email
-        email_body_html = email_template.get_email_header()
+        email_body_html = email_template.get_email_header(frontend_url)
         news_found_count = 0
         topics_with_articles = []
 
@@ -209,10 +212,8 @@ def send_email():
         if news_found_count > 0:
             # Add footer with unsubscribe link
             unsubscribe_token = generate_unsubscribe_token(user_email)
-            # Get frontend URL from environment variable, fallback to default
-            frontend_url = os.environ.get("FRONTEND_URL", "https://battery-scout-launchpad.vercel.app")
             unsubscribe_url = f"{frontend_url}/unsubscribe?token={unsubscribe_token}"
-            email_body_html += email_template.get_email_footer(unsubscribe_url)
+            email_body_html += email_template.get_email_footer(unsubscribe_url, frontend_url)
 
             # Build subject line
             if len(topics_with_articles) == 1:
