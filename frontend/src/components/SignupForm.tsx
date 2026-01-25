@@ -86,22 +86,40 @@ export function SignupForm() {
         (topicId) => topicIdToBackendCategory[topicId] || topicId
       );
 
-      const response = await signup({
-        email: data.email,
-        topics: backendTopics,
-        frequency: data.frequency,
-        regions: data.regions && data.regions.length > 0 ? data.regions : undefined,
+      // Use hardcoded Railway URL (like Lovable version) as fallback
+      const API_URL = import.meta.env.VITE_API_URL || 'https://battery-scout-production.up.railway.app';
+      
+      const response = await fetch(`${API_URL}/api/signup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: data.email,
+          topics: backendTopics,
+          frequency: data.frequency,
+          regions: data.regions || [],
+        }),
       });
 
-      setStatus("success");
-      setMessage(response.message);
-      form.reset();
+      const result = await response.json();
+
+      if (response.ok) {
+        setStatus("success");
+        setMessage(result.message || "You're subscribed! Check your inbox.");
+        form.reset();
+      } else {
+        setStatus("error");
+        setMessage(result.detail || result.message || "Something went wrong. Please try again.");
+      }
     } catch (error) {
       setStatus("error");
       const errorMessage = error instanceof Error ? error.message : "Something went wrong. Please try again.";
       
       if (errorMessage.includes("already subscribed") || errorMessage.includes("409")) {
         setMessage("This email is already subscribed!");
+      } else if (errorMessage.includes("fetch") || errorMessage.includes("network")) {
+        setMessage("Cannot connect to server. Please check your internet connection and try again.");
       } else {
         setMessage(errorMessage);
       }
