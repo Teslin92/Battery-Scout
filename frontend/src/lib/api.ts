@@ -5,6 +5,11 @@
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
+// Log API URL in development
+if (import.meta.env.DEV) {
+  console.log('API Base URL:', API_BASE_URL);
+}
+
 export interface SignupRequest {
   email: string;
   topics: string[];
@@ -67,20 +72,52 @@ export interface StatsResponse {
  * Sign up a new subscriber
  */
 export async function signup(data: SignupRequest): Promise<SignupResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/signup`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
+  const url = `${API_BASE_URL}/api/signup`;
+  
+  console.log('Signup request:', { url, data });
+  
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ detail: 'Failed to sign up' }));
-    throw new Error(error.detail || `HTTP ${response.status}`);
+    console.log('Signup response status:', response.status, response.statusText);
+
+    if (!response.ok) {
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { detail: `HTTP ${response.status}: ${response.statusText}` };
+      }
+      
+      console.error('Signup error:', errorData);
+      
+      // Handle 404 specifically
+      if (response.status === 404) {
+        throw new Error('API endpoint not found. Please check your backend URL configuration.');
+      }
+      
+      throw new Error(errorData.detail || errorData.message || `HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log('Signup success:', result);
+    return result;
+  } catch (error) {
+    console.error('Signup fetch error:', error);
+    
+    // Network errors
+    if (error instanceof TypeError && error.message.includes('fetch')) {
+      throw new Error(`Cannot connect to backend API at ${API_BASE_URL}. Please check your network connection and API URL.`);
+    }
+    
+    throw error;
   }
-
-  return response.json();
 }
 
 /**
