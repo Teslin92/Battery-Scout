@@ -209,7 +209,9 @@ def send_email():
         if news_found_count > 0:
             # Add footer with unsubscribe link
             unsubscribe_token = generate_unsubscribe_token(user_email)
-            unsubscribe_url = f"https://battery-scout-launchpad.vercel.app/unsubscribe?token={unsubscribe_token}"
+            # Get frontend URL from environment variable, fallback to default
+            frontend_url = os.environ.get("FRONTEND_URL", "https://battery-scout-launchpad.vercel.app")
+            unsubscribe_url = f"{frontend_url}/unsubscribe?token={unsubscribe_token}"
             email_body_html += email_template.get_email_footer(unsubscribe_url)
 
             # Build subject line

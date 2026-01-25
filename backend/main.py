@@ -72,6 +72,7 @@ class ContentItem(BaseModel):
     category: str
     source_name: Optional[str] = None
     source_country: Optional[str] = None
+    url: Optional[str] = None
 
 
 class ContentResponse(BaseModel):
@@ -101,19 +102,19 @@ origins = [
     "http://localhost:3000",      # React dev (Create React App)
     "http://localhost:5173",      # Vite dev
     "http://localhost:5174",      # Vite dev (alternate port)
-    "http://localhost:8080",      # Alternative dev port
-    "https://*.lovable.app",      # Lovable preview deployments
+    "http://localhost:8080",      # Vite dev (this project's port)
     "https://battery-scout.streamlit.app",  # Legacy Streamlit app
-    "https://battery-scout-launchpad.vercel.app",  # Vercel production
 ]
 
-# Also allow any Lovable subdomain
-LOVABLE_PATTERN = ".lovable.app"
+# Get production frontend URL from environment variable
+production_frontend_url = os.environ.get("FRONTEND_URL")
+if production_frontend_url:
+    origins.append(production_frontend_url)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"https://.*\.(lovable\.app|vercel\.app)",  # Match Lovable and Vercel subdomains
+    allow_origin_regex=r"https://.*\.(vercel\.app|netlify\.app)",  # Match Vercel and Netlify subdomains
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -260,7 +261,8 @@ async def get_sample_content():
                     summary=article.get("summary", ""),
                     category=article["category"],
                     source_name=article.get("source_name"),
-                    source_country=article.get("source_country")
+                    source_country=article.get("source_country"),
+                    url=article.get("url")
                 )
                 for article in recent[:3]
             ]

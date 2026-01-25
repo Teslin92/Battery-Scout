@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { ArticleCard } from "./ArticleCard";
-import { supabase } from "@/integrations/supabase/client";
+import { getSampleContent } from "@/lib/api";
 
 const categoryColorMap: Record<string, string> = {
   "Industry News": "industry",
@@ -13,19 +13,14 @@ const categoryColorMap: Record<string, string> = {
 };
 
 export const SampleNewsletterSection = () => {
-  const { data: articles, isLoading } = useQuery({
-    queryKey: ["articles"],
+  const { data: contentResponse, isLoading } = useQuery({
+    queryKey: ["sample-content"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("articles")
-        .select("*")
-        .order("publish_date", { ascending: false })
-        .limit(6);
-
-      if (error) throw error;
-      return data;
+      return await getSampleContent();
     },
   });
+
+  const articles = contentResponse?.sample_articles || [];
 
   return (
     <section className="py-20 bg-secondary/30">
@@ -54,17 +49,17 @@ export const SampleNewsletterSection = () => {
               </div>
             ))}
           </div>
-        ) : (
+        ) : articles.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {articles?.map((article, index) => (
+            {articles.map((article, index) => (
               <div
-                key={article.id}
+                key={index}
                 className="animate-fade-in"
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
                 <ArticleCard
-                  flag={article.source_country}
-                  source={article.source_name}
+                  flag={article.source_country || ""}
+                  source={article.source_name || "Unknown"}
                   title={article.title}
                   summary={article.summary}
                   category={article.category}
@@ -73,6 +68,10 @@ export const SampleNewsletterSection = () => {
                 />
               </div>
             ))}
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground py-12">
+            No sample articles available at the moment.
           </div>
         )}
       </div>

@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Battery, CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { verifyUnsubscribeToken, confirmUnsubscribe } from "@/lib/api";
+import { toast } from "sonner";
 
 type UnsubscribeState = "loading" | "confirm" | "success" | "error" | "invalid";
 
@@ -26,35 +27,14 @@ const Unsubscribe = () => {
 
   const verifyToken = async (token: string) => {
     try {
-      // Token format: base64_email.hash
-      const [emailEncoded] = token.split(".");
-      if (!emailEncoded) {
+      const response = await verifyUnsubscribeToken(token);
+
+      if (!response.valid || !response.email) {
         setState("invalid");
         return;
       }
 
-      // Decode email from base64
-      const decodedEmail = atob(emailEncoded.replace(/-/g, "+").replace(/_/g, "/"));
-
-      // Verify subscriber exists
-      const { data, error } = await supabase
-        .from("subscribers")
-        .select("email, is_active")
-        .eq("email", decodedEmail.toLowerCase())
-        .single();
-
-      if (error || !data) {
-        setState("invalid");
-        return;
-      }
-
-      if (!data.is_active) {
-        setEmail(decodedEmail);
-        setState("success"); // Already unsubscribed
-        return;
-      }
-
-      setEmail(decodedEmail);
+      setEmail(response.email);
       setState("confirm");
     } catch (e) {
       console.error("Token verification error:", e);
@@ -68,21 +48,20 @@ const Unsubscribe = () => {
     setState("loading");
 
     try {
-      const { error } = await supabase
-        .from("subscribers")
-        .update({ is_active: false })
-        .eq("email", email.toLowerCase());
+      const response = await confirmUnsubscribe(email);
 
-      if (error) {
-        setError(error.message);
+      if (response.success) {
+        setState("success");
+        toast.success(response.message);
+      } else {
+        setError(response.message || "Failed to unsubscribe");
         setState("error");
-        return;
       }
-
-      setState("success");
     } catch (e) {
-      setError("An unexpected error occurred. Please try again.");
+      const errorMessage = e instanceof Error ? e.message : "An unexpected error occurred. Please try again.";
+      setError(errorMessage);
       setState("error");
+      toast.error(errorMessage);
     }
   };
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -6,29 +6,47 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Battery, Zap, Mail } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
+import { signup, getTopics, type TopicsResponse } from "@/lib/api";
 
 const emailSchema = z.string().email("Please enter a valid email address").max(255);
 
-const categories = [
-  { id: "industry", label: "Industry News" },
-  { id: "technology", label: "Technology & Innovation" },
-  { id: "supply", label: "Supply Chain & Materials" },
-  { id: "manufacturing", label: "Manufacturing & Production" },
-  { id: "policy", label: "Policy & Regulations" },
-  { id: "recycling", label: "Battery Recycling" },
-  { id: "market", label: "Market Applications" },
-];
+// Helper to create a stable ID from category name
+const categoryNameToId = (name: string): string => {
+  return name.toLowerCase().replace(/\s+/g, '-').replace(/[&]/g, '').replace(/[^a-z0-9-]/g, '');
+};
 
 export const HeroSection = () => {
   const [email, setEmail] = useState("");
   const [frequency, setFrequency] = useState<"daily" | "weekly">("daily");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([
-    "industry",
-    "technology",
-  ]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [topics, setTopics] = useState<TopicsResponse | null>(null);
+  const [isLoadingTopics, setIsLoadingTopics] = useState(true);
+
+  // Fetch topics from backend on mount
+  useEffect(() => {
+    const fetchTopics = async () => {
+      try {
+        const topicsData = await getTopics();
+        setTopics(topicsData);
+        // Set default selection to first two categories
+        if (topicsData.all_categories.length >= 2) {
+          const firstTwoIds = topicsData.all_categories
+            .slice(0, 2)
+            .map(cat => categoryNameToId(cat));
+          setSelectedCategories(firstTwoIds);
+        }
+      } catch (error) {
+        console.error("Failed to fetch topics:", error);
+        toast.error("Failed to load topics. Please refresh the page.");
+      } finally {
+        setIsLoadingTopics(false);
+      }
+    };
+
+    fetchTopics();
+  }, []);
 
   const handleCategoryToggle = (categoryId: string) => {
     setSelectedCategories((prev) =>
@@ -55,46 +73,45 @@ export const HeroSection = () => {
 
     setIsSubmitting(true);
 
-    const insertData = {
-      email: email.trim().toLowerCase(),
-      frequency: frequency,
-      categories: selectedCategories,
-    };
-    
-    console.log("=== Form Submission Debug ===");
-    console.log("Insert data:", insertData);
-
     try {
-      const { data, error } = await supabase.from("subscribers").insert(insertData);
+      // Map frontend category IDs back to backend category names
+      const backendTopics = selectedCategories.map((id) => {
+        // Find the category name that matches this ID
+        const category = topics?.all_categories.find(
+          (cat) => categoryNameToId(cat) === id
+        );
+        return category || id;
+      });
 
-      console.log("Supabase response - data:", data);
-      console.log("Supabase response - error:", error);
-      
-      if (error) {
-        console.log("Error code:", error.code);
-        console.log("Error message:", error.message);
-        console.log("Error details:", error.details);
-        console.log("Error hint:", error.hint);
-        
-        // 23505 is the PostgreSQL unique violation error code
-        if (error.code === "23505") {
-          toast.error("This email is already subscribed!");
-        } else {
-          toast.error(`Error: ${error.message || "Something went wrong. Please try again."}`);
-        }
-        return;
-      }
+      const response = await signup({
+        email: email.trim().toLowerCase(),
+        topics: backendTopics,
+        frequency: frequency,
+      });
 
-      console.log("Success! Subscription saved.");
-      toast.success("Welcome to Battery Brief! You're all set.");
+      toast.success(response.message);
       setEmail("");
+      setSelectedCategories([]);
     } catch (err) {
-      console.error("Caught exception:", err);
-      toast.error("Something went wrong. Please try again.");
+      const errorMessage = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      
+      if (errorMessage.includes("already subscribed") || errorMessage.includes("409")) {
+        toast.error("This email is already subscribed!");
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Build categories list from backend topics
+  const categories = topics
+    ? topics.all_categories.map((cat) => ({
+        id: categoryNameToId(cat),
+        label: cat,
+      }))
+    : [];
 
   return (
     <section className="hero-gradient min-h-screen flex items-center relative overflow-hidden">
@@ -129,7 +146,7 @@ export const HeroSection = () => {
             className="text-lg text-primary-foreground/70 mb-12 max-w-2xl mx-auto animate-fade-in"
             style={{ animationDelay: "0.2s" }}
           >
-            Curated news across 7 key categories with AI-powered summaries.
+            Curated news across {topics?.all_categories.length || 6} key categories with AI-powered summaries.
             Stay ahead in the lithium-ion battery industry.
           </p>
 
@@ -184,23 +201,29 @@ export const HeroSection = () => {
               <Label className="text-sm font-medium text-muted-foreground mb-3 block">
                 Select Categories
               </Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-left">
-                {categories.map((category) => (
-                  <div key={category.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={category.id}
-                      checked={selectedCategories.includes(category.id)}
-                      onCheckedChange={() => handleCategoryToggle(category.id)}
-                    />
-                    <Label
-                      htmlFor={category.id}
-                      className="text-sm cursor-pointer"
-                    >
-                      {category.label}
-                    </Label>
-                  </div>
-                ))}
-              </div>
+              {isLoadingTopics ? (
+                <div className="text-sm text-muted-foreground">Loading categories...</div>
+              ) : categories.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-left">
+                  {categories.map((category) => (
+                    <div key={category.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={category.id}
+                        checked={selectedCategories.includes(category.id)}
+                        onCheckedChange={() => handleCategoryToggle(category.id)}
+                      />
+                      <Label
+                        htmlFor={category.id}
+                        className="text-sm cursor-pointer"
+                      >
+                        {category.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-muted-foreground">No categories available</div>
+              )}
             </div>
 
             {/* Submit Button */}
