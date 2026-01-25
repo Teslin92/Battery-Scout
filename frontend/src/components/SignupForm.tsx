@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,7 +16,27 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Loader2, CheckCircle2, AlertCircle, Zap } from "lucide-react";
-import { signup, getTopics, type TopicsResponse } from "@/lib/api";
+import { signup } from "@/lib/api";
+
+// Hardcoded topics matching backend categories
+const topics = [
+  { id: "companies-deals", label: "Companies & Deals" },
+  { id: "policy-regulation", label: "Policy & Regulation" },
+  { id: "supply-chain", label: "Supply Chain" },
+  { id: "lithium-ion-solid-state", label: "Lithium-ion & Solid-state" },
+  { id: "sodium-ion-alternatives", label: "Sodium-ion & Alternatives" },
+  { id: "recycling-second-life", label: "Recycling & Second-life" },
+] as const;
+
+// Map frontend topic IDs to backend category names
+const topicIdToBackendCategory: Record<string, string> = {
+  "companies-deals": "Companies & Deals",
+  "policy-regulation": "Policy & Regulation",
+  "supply-chain": "Supply Chain",
+  "lithium-ion-solid-state": "Lithium-ion & Solid-state",
+  "sodium-ion-alternatives": "Sodium-ion & Alternatives",
+  "recycling-second-life": "Recycling & Second-life",
+};
 
 const regions = [
   { id: "North America", label: "North America" },
@@ -45,8 +65,6 @@ type SignupFormData = z.infer<typeof signupSchema>;
 export function SignupForm() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [message, setMessage] = useState("");
-  const [topicsData, setTopicsData] = useState<TopicsResponse | null>(null);
-  const [loadingTopics, setLoadingTopics] = useState(true);
 
   const form = useForm<SignupFormData>({
     resolver: zodResolver(signupSchema),
@@ -58,32 +76,19 @@ export function SignupForm() {
     },
   });
 
-  // Fetch topics from backend
-  useEffect(() => {
-    const fetchTopics = async () => {
-      try {
-        const data = await getTopics();
-        setTopicsData(data);
-      } catch (error) {
-        console.error("Failed to fetch topics:", error);
-        setStatus("error");
-        setMessage("Failed to load topics. Please refresh the page.");
-      } finally {
-        setLoadingTopics(false);
-      }
-    };
-
-    fetchTopics();
-  }, []);
-
   async function onSubmit(data: SignupFormData) {
     setStatus("loading");
     setMessage("");
 
     try {
+      // Map frontend topic IDs to backend category names
+      const backendTopics = data.topics.map(
+        (topicId) => topicIdToBackendCategory[topicId] || topicId
+      );
+
       const response = await signup({
         email: data.email,
-        topics: data.topics,
+        topics: backendTopics,
         frequency: data.frequency,
         regions: data.regions && data.regions.length > 0 ? data.regions : undefined,
       });
@@ -116,12 +121,6 @@ export function SignupForm() {
       </div>
     );
   }
-
-  // Map backend topics to the format needed for the form
-  const topics = topicsData?.all_categories.map((category) => ({
-    id: category,
-    label: category,
-  })) || [];
 
   return (
     <Form {...form}>
@@ -157,39 +156,35 @@ export function SignupForm() {
               <FormLabel className="text-foreground font-medium">
                 Topics <span className="text-muted-foreground font-normal">(select at least 1)</span>
               </FormLabel>
-              {loadingTopics ? (
-                <div className="text-sm text-muted-foreground py-4">Loading topics...</div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-                  {topics.map((topic) => (
-                    <FormField
-                      key={topic.id}
-                      control={form.control}
-                      name="topics"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center space-x-3 space-y-0">
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value?.includes(topic.id)}
-                              onCheckedChange={(checked) => {
-                                return checked
-                                  ? field.onChange([...field.value, topic.id])
-                                  : field.onChange(
-                                      field.value?.filter((value) => value !== topic.id)
-                                    );
-                              }}
-                              className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                            />
-                          </FormControl>
-                          <Label className="text-sm text-foreground font-normal cursor-pointer">
-                            {topic.label}
-                          </Label>
-                        </FormItem>
-                      )}
-                    />
-                  ))}
-                </div>
-              )}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+                {topics.map((topic) => (
+                  <FormField
+                    key={topic.id}
+                    control={form.control}
+                    name="topics"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value?.includes(topic.id)}
+                            onCheckedChange={(checked) => {
+                              return checked
+                                ? field.onChange([...field.value, topic.id])
+                                : field.onChange(
+                                    field.value?.filter((value) => value !== topic.id)
+                                  );
+                            }}
+                            className="border-border data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                          />
+                        </FormControl>
+                        <Label className="text-sm text-foreground font-normal cursor-pointer">
+                          {topic.label}
+                        </Label>
+                      </FormItem>
+                    )}
+                  />
+                ))}
+              </div>
               <FormMessage />
             </FormItem>
           )}
@@ -291,7 +286,7 @@ export function SignupForm() {
         {/* Submit Button */}
         <Button
           type="submit"
-          disabled={status === "loading" || loadingTopics}
+          disabled={status === "loading"}
           className="w-full h-12 gradient-primary text-primary-foreground font-semibold text-base shadow-glow hover:opacity-90 transition-opacity"
         >
           {status === "loading" ? (
