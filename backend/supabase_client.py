@@ -164,15 +164,16 @@ def get_active_subscribers() -> List[Dict[str, Any]]:
 
     response = supabase.table("subscribers").select("*").eq("is_active", True).execute()
 
-    # Convert boolean pref columns to categories list
-    subscribers = []
-    for sub in response.data:
-        # Build categories from preference columns
-        categories = []
-        for cat_name, col_name in CATEGORY_PREF_COLUMNS.items():
-            # Default to True if column doesn't exist or is True
-            if sub.get(col_name, True):
-                categories.append(cat_name)
+        # Convert boolean pref columns to categories list
+        subscribers = []
+        for sub in response.data:
+            # Build categories from preference columns
+            categories = []
+            for cat_name, col_name in CATEGORY_PREF_COLUMNS.items():
+                # Only include category if preference column is explicitly True
+                # Default to False if column doesn't exist (not True)
+                if sub.get(col_name, False) is True:
+                    categories.append(cat_name)
 
         # If subscriber has old-style categories array, convert them
         if not categories and sub.get("categories"):
@@ -275,6 +276,23 @@ def save_subscriber(
         regions = ["Global"]
 
     try:
+        # Build preference columns based on selected categories
+        # Initialize all preferences to False
+        pref_data = {
+            "pref_companies_deals": False,
+            "pref_policy_regulation": False,
+            "pref_supply_chain": False,
+            "pref_lithium_solidstate": False,
+            "pref_sodium_alternatives": False,
+            "pref_recycling": False,
+        }
+        
+        # Set to True only for selected categories
+        for category in categories:
+            if category in CATEGORY_PREF_COLUMNS:
+                col_name = CATEGORY_PREF_COLUMNS[category]
+                pref_data[col_name] = True
+
         # Check if subscriber already exists
         existing = get_subscriber_by_email(email)
 
@@ -283,23 +301,27 @@ def save_subscriber(
                 return False, "This email is already subscribed."
             else:
                 # Reactivate subscriber with new preferences
-                supabase.table("subscribers").update({
+                update_data = {
                     "is_active": True,
                     "categories": categories,
                     "frequency": frequency.lower(),
                     "regions": regions,
-                    "subscribed_at": datetime.now(timezone.utc).isoformat()
-                }).eq("email", email.lower()).execute()
+                    "subscribed_at": datetime.now(timezone.utc).isoformat(),
+                    **pref_data  # Include preference columns
+                }
+                supabase.table("subscribers").update(update_data).eq("email", email.lower()).execute()
                 return True, None
 
-        # Insert new subscriber
-        supabase.table("subscribers").insert({
+        # Insert new subscriber with preference columns
+        insert_data = {
             "email": email.lower(),
             "categories": categories,
             "frequency": frequency.lower(),
             "regions": regions,
-            "is_active": True
-        }).execute()
+            "is_active": True,
+            **pref_data  # Include preference columns
+        }
+        supabase.table("subscribers").insert(insert_data).execute()
 
         return True, None
 
@@ -368,6 +390,26 @@ def update_subscriber_preferences(
         update_data = {}
         if categories is not None:
             update_data["categories"] = categories
+            
+            # Update preference columns based on categories
+            # Initialize all to False
+            pref_data = {
+                "pref_companies_deals": False,
+                "pref_policy_regulation": False,
+                "pref_supply_chain": False,
+                "pref_lithium_solidstate": False,
+                "pref_sodium_alternatives": False,
+                "pref_recycling": False,
+            }
+            
+            # Set to True only for selected categories
+            for category in categories:
+                if category in CATEGORY_PREF_COLUMNS:
+                    col_name = CATEGORY_PREF_COLUMNS[category]
+                    pref_data[col_name] = True
+            
+            update_data.update(pref_data)
+            
         if frequency is not None:
             update_data["frequency"] = frequency.lower()
 
