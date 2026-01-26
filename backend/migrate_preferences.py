@@ -14,8 +14,7 @@ import os
 import sys
 from supabase_client import (
     get_supabase_client,
-    CATEGORY_PREF_COLUMNS,
-    get_active_subscribers
+    CATEGORY_PREF_COLUMNS
 )
 
 
@@ -25,10 +24,15 @@ def migrate_subscriber_preferences():
     """
     supabase = get_supabase_client()
     
-    # Get all active subscribers
+    # Get all active subscribers directly from database
     print("Fetching all active subscribers...")
-    subscribers = get_active_subscribers()
-    print(f"Found {len(subscribers)} active subscribers")
+    try:
+        response = supabase.table("subscribers").select("*").eq("is_active", True).execute()
+        subscribers = response.data
+        print(f"Found {len(subscribers)} active subscribers")
+    except Exception as e:
+        print(f"❌ Error fetching subscribers: {e}")
+        raise
     
     updated_count = 0
     error_count = 0

@@ -164,16 +164,16 @@ def get_active_subscribers() -> List[Dict[str, Any]]:
 
     response = supabase.table("subscribers").select("*").eq("is_active", True).execute()
 
-        # Convert boolean pref columns to categories list
-        subscribers = []
-        for sub in response.data:
-            # Build categories from preference columns
-            categories = []
-            for cat_name, col_name in CATEGORY_PREF_COLUMNS.items():
-                # Only include category if preference column is explicitly True
-                # Default to False if column doesn't exist (not True)
-                if sub.get(col_name, False) is True:
-                    categories.append(cat_name)
+    # Convert boolean pref columns to categories list
+    subscribers = []
+    for sub in response.data:
+        # Build categories from preference columns
+        categories = []
+        for cat_name, col_name in CATEGORY_PREF_COLUMNS.items():
+            # Only include category if preference column is explicitly True
+            # Default to False if column doesn't exist (not True)
+            if sub.get(col_name, False) is True:
+                categories.append(cat_name)
 
         # If subscriber has old-style categories array, convert them
         if not categories and sub.get("categories"):
