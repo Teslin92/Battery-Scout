@@ -292,6 +292,31 @@ def save_subscriber(
             if category in CATEGORY_PREF_COLUMNS:
                 col_name = CATEGORY_PREF_COLUMNS[category]
                 pref_data[col_name] = True
+        
+        # Build region preference columns
+        # Initialize all region preferences to False
+        region_pref_data = {
+            "pref_north_america": False,
+            "pref_europe": False,
+            "pref_asia": False,
+            "pref_global": False,
+        }
+        
+        # Set to True only for selected regions
+        if regions:
+            for region in regions:
+                region_normalized = region.strip()
+                if region_normalized == "North America":
+                    region_pref_data["pref_north_america"] = True
+                elif region_normalized == "Europe":
+                    region_pref_data["pref_europe"] = True
+                elif region_normalized == "Asia":
+                    region_pref_data["pref_asia"] = True
+                elif region_normalized == "Global":
+                    region_pref_data["pref_global"] = True
+        
+        # Merge region preferences into pref_data
+        pref_data.update(region_pref_data)
 
         # Check if subscriber already exists
         existing = get_subscriber_by_email(email)
