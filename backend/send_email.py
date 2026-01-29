@@ -137,11 +137,17 @@ Your personalized battery industry updates:
             source = article.get("source_name", "Unknown")
             pub_date = article.get("publish_date", "")
             display_date = pub_date[:16] if len(pub_date) > 16 else pub_date
-            
-            text += f"{title}\n"
+            is_translated = article.get("is_translated", False)
+            flag = article.get("flag", "") if is_translated else ""
+
+            title_prefix = f"{flag} " if flag else ""
+            text += f"{title_prefix}{title}\n"
             if summary:
                 text += f"{summary}\n"
-            text += f"Source: {source} | Date: {display_date}\n"
+            source_line = f"Source: {source} | Date: {display_date}"
+            if is_translated:
+                source_line += f" | Translated (Original: {url})"
+            text += f"{source_line}\n"
             text += f"Read more: {url}\n\n"
     
     text += f"""
@@ -200,8 +206,14 @@ def send_email():
         print("No active subscribers found.")
         return
 
+    # Skip weekends entirely (Saturday=5, Sunday=6)
+    today_weekday = datetime.now().weekday()
+    if today_weekday >= 5:
+        print("📅 Weekend - no emails sent. Resuming Monday.")
+        return
+
     # Check if today is Monday (for weekly subscribers)
-    is_monday = datetime.now().weekday() == 0
+    is_monday = today_weekday == 0
 
     for subscriber in subscribers:
         user_email = subscriber.get("email")
