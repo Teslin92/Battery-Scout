@@ -40,4 +40,5 @@ jobs:
           GMAIL_USER: ${{ secrets.GMAIL_USER }}
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           UNSUBSCRIBE_SALT: ${{ secrets.UNSUBSCRIBE_SALT }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
         run: python send_email.py
